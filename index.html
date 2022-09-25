@@ -88,7 +88,7 @@
       
         <h1 id="域渗透—黄金白银票据伪造"><a href="#域渗透—黄金白银票据伪造" class="headerlink" title="域渗透—黄金白银票据伪造"></a>域渗透—黄金白银票据伪造</h1><h2 id="一、域内协议Kerberos"><a href="#一、域内协议Kerberos" class="headerlink" title="一、域内协议Kerberos"></a>一、域内协议<code>Kerberos</code></h2><p>​    在域环境中，一般使用<code>Kerberos</code>来作为身份认证的一种协议。其实<code>NTLM</code>协议也存在于域环境中。两种协议共存，针对不同的协议，也就有了不同的攻击方式。</p>
 <h3 id="1、传统的Kerberos认证模型"><a href="#1、传统的Kerberos认证模型" class="headerlink" title="1、传统的Kerberos认证模型"></a>1、传统的<code>Kerberos</code>认证模型</h3><p>​    首先来介绍一下<code>Kerberos</code>认证的模型：</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211201103044080.png" alt="image-20211201103044080"></p>
+<p><img src="./image-20211201103044080.png" alt="image-20211201103044080"></p>
 <p>​    在<code>Kerberos</code>认证环境下，主要存在三种角色，分别为客户端、服务端以及<code>KDC</code>即密钥分发中心。在域环境中，<code>KDC</code>存在于<code>DC</code>上面。客户端想要访问服务端上的某些服务，首先需要向<code>KDC</code>申请一张<code>TGT</code>票据，然后使用此票据去申请访问目标服务的<code>TGS</code>票据，最后拿着<code>TGS</code>票据，去访问服务端从而完成验证。</p>
 <p>大致的认证流程为：</p>
 <h4 id="（1）申请TGT-AS-REQ-AS-REP"><a href="#（1）申请TGT-AS-REQ-AS-REP" class="headerlink" title="（1）申请TGT: AS_REQ/AS_REP"></a>（1）申请<code>TGT</code>: <code>AS_REQ/AS_REP</code></h4><p>​    客户端想要访问服务端上的某个服务，首先会将自己的身份信息发送给<code>KDC</code>。<code>KDC</code>获取到信息之后，会进行一次验证，查看用户是否存在于白名单中，然后从本地提取出相应用户的<code>NTLM Hash</code>，并生成一个随机字符串<code>Session Key</code>。</p>
@@ -101,7 +101,7 @@
 <h3 id="2、引入PAC特权属性证书"><a href="#2、引入PAC特权属性证书" class="headerlink" title="2、引入PAC特权属性证书"></a>2、引入<code>PAC</code>特权属性证书</h3><p>​    上面是一个很典型的<code>Kerberos</code>认证模型，但是有一个问题没有解决，那就是如何确定该用户是否有权限访问目标服务。为此，微软引进了<code>PAC</code>来进行权限访问控制。</p>
 <p>​    引入<code>PAC</code>后，当客户端向<code>KDC</code>申请<code>TGT</code>票据的时候，<code>KDC</code>会将<code>PAC</code>封装到<code>TGT</code>中，也就是说此时的<code>TGT</code>新增了一部分内容。而<code>PAC</code>中会包含用户的<code>sid</code>和用户所属的组。当用户拿着<code>TGT</code>去申请<code>ST</code>的时候，<code>KDC</code>会将<code>PAC</code>也同时封装到<code>ST</code>中。在最后一步进行访问服务的时候，用户发送<code>ST</code>，服务端获取后进行解密，并从中提取出来<code>PAC</code>，然后发送给域控进行权限的认证，查询用户是否有权限访问该服务。</p>
 <p>​    大致整理一下，就是当用户申请两张票据的时候，即<code>TGT</code>和<code>ST</code>的时候，<code>KDC</code>会将生成的<code>PAC</code>封装到票据中。然后在最后一步进行权限的校验。</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215100339954.png" alt="image-20211215100339954"></p>
+<p><img src="./image-20211215100339954.png" alt="image-20211215100339954"></p>
 <p>​    通过上面的认证方式，可以思考一下，如果可以伪造<code>TGT</code>的话，我们最终可以完成认证吗？或者任意伪造<code>    ST</code>，是否能完成认证。</p>
 <p>​    通常而言，利用<code>NTLM</code>协议来实现<code>PTH</code>哈希传递攻击，或者使用中继攻击，而<code>Kerberos</code>协议，一般用来做票据伪造，完成权限维持。</p>
 <h2 id="二、PTH哈希传递攻击（扩展）"><a href="#二、PTH哈希传递攻击（扩展）" class="headerlink" title="二、PTH哈希传递攻击（扩展）"></a>二、<code>PTH</code>哈希传递攻击（扩展）</h2><p>​    在介绍票据伪造之前，首先了解一下<code>PTH</code>哈希传递攻击。</p>
@@ -110,16 +110,16 @@
 <p>​    1、在工作组环境下，<code>Windows Vista</code>之后的机器，只能是<code>administrator</code>用户的<code>Hash</code>可以进行<code>PTH</code>攻击。</p>
 <p>​    2、在域环境中，只能是域管理员组内用户的<code>Hash</code>可以进行<code>PTH</code>攻击。</p>
 <p>接下来做一个实践操作：（实验拓扑环境）</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211201113446291.png" alt="image-20211201113446291"></p>
+<p><img src="./image-20211201113446291.png" alt="image-20211201113446291"></p>
 <p>通过<code>PTH</code>哈希传递攻击，从<code>PC</code>横向移动到<code>PC1</code>主机上面。</p>
 <p>首先在<code>PC</code>上使用<code>mimikatz</code>导出内存中存在的<code>Hash</code>值：（需要管理员执行）</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mimikatz.exe &quot;privilege::debug&quot; &quot;sekurlsa::logonpasswords full&quot; &quot;exit&quot; &gt; 1.txt</span><br></pre></td></tr></table></figure>
 
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211201214643602.png" alt="image-20211201214643602"></p>
+<p><img src="./image-20211201214643602.png" alt="image-20211201214643602"></p>
 <p>​    使用<code>mimikatz</code>进行<code>PTH</code>攻击：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mimikatz.exe &quot;privilege::debug&quot; &quot;sekurlsa::pth /user:administrator /domain:god.org /ntlm:81be2f80d568100549beac645d6a7141&quot;</span><br></pre></td></tr></table></figure>
 
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211201214540589.png" alt="image-20211201214540589"></p>
+<p><img src="./image-20211201214540589.png" alt="image-20211201214540589"></p>
 <p>​    攻击成功之后，会有一个新的<code>CMD</code>窗口弹出，在这个<code>CMD</code>中，就可以利用<code>SMB</code>协议直接连接到其他主机进行命令执行等操作。</p>
 <h2 id="三、白银票据伪造"><a href="#三、白银票据伪造" class="headerlink" title="三、白银票据伪造"></a>三、白银票据伪造</h2><p>​    当我们获取到域内一台服务器的域用户<code>NTLM Hash</code>之后，就可以对<code>ST</code>票据进行伪造。在前面的<code>Kerberos</code>认证模型中，<code>ST</code>是经过目标服务器的<code>NTLM Hash</code>加密的，在最后进行验证的时候，服务器会解密<code>ST</code>，从中取出用户信息，然后和客户端发送的用户信息做一个对比，完成验证。因此，如果获取到目标服务端的<code>NTLM Hash</code>，那么这两段客户端发送的信息都可以进行伪造。（这里注意一点：是目标服务器的<code>NTLM Hash</code>，而不是域内用户的<code>NTLM Hash</code>）</p>
 <p>​    利用<code>mimikatz</code>来进行票据的伪造，需要获取到一些参数值：</p>
@@ -128,10 +128,10 @@
 <p>​    接下来模拟一个场景，在域环境中，得到了域控主机账号的<code>NTLM Hash</code>值，然后尝试利用白银票据的伪造，访问域控上的文件服务列表：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kerberos::golden /domain:god.org /sid:S-1-5-21-2952760202-1353902439-2381784089 /target:owa.god.org /rc4:f3d61310119eac428972d5e70ee7105f /service:cifs /user:Administrator /ptt</span><br></pre></td></tr></table></figure>
 
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215113319557.png" alt="image-20211215113319557"></p>
+<p><img src="./image-20211215113319557.png" alt="image-20211215113319557"></p>
 <p>​    这里有两个小坑，一个就是<code>sid</code>，另外一个就是目标机器的<code>NTLM Hash</code>:</p>
 <p>（1）<code>sid</code>值：这里需要指定域内的<code>sid</code>值，我们可以通过<code>whoami /all</code>来进行查询</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215141956130.png" alt="image-20211215141956130"></p>
+<p><img src="./image-20211215141956130.png" alt="image-20211215141956130"></p>
 <p>（2）目标机器的<code>NTLM Hash</code>值，而不是域内账号的<code>NTLM Hash</code>值。刚开始在做实验的时候，拿着域管的<code>NTLM Hash</code>去生成白银票据，发现是不能进行横向移动的。这里需要指定机器的<code>NTLM Hash</code>值，也就是说需要指定机器本地账户的<code>NTLM Hash</code>值。通常情况下，例如目标机器名为<code>m1sn0w</code>，那么这里需要指定的<code>NTLM Hash</code>值应该为<code>m1sn0w$</code>账号对应的<code>NTLM Hash</code>值。</p>
 <p>​    在域环境中，可以开启<code>PAC</code>来预防白银票据的伪造，因为在整个<code>Kerberos</code>认证的模型中，如果开启了<code>PAC</code>，在最后验证<code>ST</code>的时候就会向域控发起验证，那么伪造的<code>ST</code>也就不会生效了。</p>
 <h2 id="四、黄金票据伪造"><a href="#四、黄金票据伪造" class="headerlink" title="四、黄金票据伪造"></a>四、黄金票据伪造</h2><p>​    在<code>Kerberos</code>中，申请到的<code>TGT</code>票据是由<code>KDC</code>中的一个特定账号<code>krbtgt</code>的<code>NTLM Hash</code>加密的。如果我们获取到<code>krbtgt</code>的<code>NTLM Hash</code>值，那么就可以伪造<code>TGT</code>票据。当<code>TGT</code>票据可以伪造之后，我们就可以拿着这张票据去申请<code>ST</code>，从而访问域内的其他服务器。相比于白银票据的伪造，黄金票据更适合用来做权限维持，当我们获取到<code>krbtgt</code>的<code>NTLM Hash</code>之后，就可以访问域内的所有其他主机。</p>
@@ -141,11 +141,11 @@
 <p>​    当我们获取到<code>krbtgt</code>的<code>NTLM Hash</code>之后，就可以利用<code>mimikatz</code>来制作黄金票据：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kerberos::golden /user:Administrator /sid:域内sid /krbtgt:ntlm-hash /domain:域名</span><br></pre></td></tr></table></figure>
 
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215134910572.png" alt="image-20211215134910572"></p>
+<p><img src="./image-20211215134910572.png" alt="image-20211215134910572"></p>
 <p>可以使用<code>klist</code>命令查看内存中的票据。当制作完成黄金票据之后，就可以访问域内的其他主机，包括域控主机：</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215135211973.png" alt="image-20211215135211973"></p>
+<p><img src="./image-20211215135211973.png" alt="image-20211215135211973"></p>
 <p>​    上述实验只是说明了，制作黄金票据之后，就可以访问域内的其他主机。在实际场景下，我们想要达到的效果是横向移动到其他机器上面，可以进行命令执行等操作。这里可以利用<code>PsExec</code>工具来进行横向攻击：下载地址（<code>https://download.sysinternals.com/files/PSTools.zip</code>）</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215140749885.png" alt="image-20211215140749885"></p>
+<p><img src="./image-20211215140749885.png" alt="image-20211215140749885"></p>
 <p>​    总的来说，黄金票据的伪造就是使用到了<code>krbtgt</code>的<code>hash</code>值，因此关于这种风险的预防以及修复，可以围绕着<code>krbtgt</code>进行，例如可以禁用该账户，或者定期修改该用户的值。</p>
 <h2 id="五、MS14-068漏洞"><a href="#五、MS14-068漏洞" class="headerlink" title="五、MS14-068漏洞"></a>五、<code>MS14-068</code>漏洞</h2><p>​    这是一个非常经典的漏洞，它可以将域用户提升为域管理员。其原理就是利用了微软在加入<code>PAC</code>之后，没有进行严格的流程控制，从而导致了漏洞的产生。补丁编号为<code>KB3011780</code>。（虽然该漏洞可能以后会见的很少，但是它很经典）</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># 查看补丁状况</span><br><span class="line">wmic qfe GET hotfixid | findstr /C:&quot;KB3011780&quot;</span><br><span class="line"></span><br><span class="line"># 使用systeminfo也可以查看补丁状态</span><br></pre></td></tr></table></figure>
@@ -165,16 +165,16 @@
 <p>（4）申请<code>ST</code>访问服务</p>
 <p>​    客户端接收到新的<code>TGT</code>之后，拿着这个<code>TGT</code>去再次去<code>KDC</code>申请<code>ST</code>，然后就可以利用<code>ST</code>访问特定的服务，并且拥有高权限。</p>
 <p>下面对漏洞进行一个简单的复现：利用<code>https://github.com/abatchy17/WindowsExploits/tree/master/MS14-068</code></p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215163017787.png" alt="image-20211215163017787"></p>
+<p><img src="./image-20211215163017787.png" alt="image-20211215163017787"></p>
 <p>通过<code>mimikatz</code>将文件导入内存即可：</p>
-<p><img src="./%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/image-20211215163108057.png" alt="image-20211215163108057"></p>
+<p><img src="./image-20211215163108057.png" alt="image-20211215163108057"></p>
 <h2 id="六、总结"><a href="#六、总结" class="headerlink" title="六、总结"></a>六、总结</h2><p>​    无论使用黄金票据还是白银票据做权限维持，还是横向移动，个人认为还是需要结合一定的场景。比如在域内做信息收集的时候，获取到目标服务器的<code>Hash</code>值，那么就可以利用白银票据做横向移动。同样，当获取到域控之后，为了完成权限的维持，可以将<code>krbtgt</code>的值记录下来，下次就可以之间进行提权操作。</p>
 <h2 id="七、参考文章"><a href="#七、参考文章" class="headerlink" title="七、参考文章"></a>七、参考文章</h2><p>【1】哈希传递攻击：<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36119192/article/details/103941590">https://blog.csdn.net/qq_36119192/article/details/103941590</a></p>
 
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/09/25/%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/" data-id="cl8h29x4h0007dgdp7et46r13" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/09/25/%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/" data-id="cl8h2gj950008fgdp2hn0712d" class="article-share-link">Share</a>
       
       
   <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/" rel="tag">域渗透</a></li></ul>
@@ -287,7 +287,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" data-id="cl8h29x4g0005dgdp7u6r9kdy" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" data-id="cl8h2gj940006fgdp5g9b8jhm" class="article-share-link">Share</a>
       
       
     </footer>
@@ -402,7 +402,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/" data-id="cl8h29x4g0006dgdp2asb2u6e" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/" data-id="cl8h2gj930004fgdp8uf8dink" class="article-share-link">Share</a>
       
       
     </footer>
@@ -489,7 +489,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/" data-id="cl8h29x4e0002dgdp1343a6iw" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/" data-id="cl8h2gj940005fgdp6abdc76p" class="article-share-link">Share</a>
       
       
     </footer>
@@ -621,7 +621,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/" data-id="cl8h29x4t000cdgdpekva4oqq" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/" data-id="cl8h2gj9f000cfgdp52ll6qeh" class="article-share-link">Share</a>
       
       
     </footer>
@@ -692,7 +692,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/" data-id="cl8h29x4f0004dgdph06fd8b3" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/02/11/RWCTF%204th%20Desperate%20Cat%20%E8%B5%9B%E9%A2%98%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%A4%8D%E7%8E%B0/" data-id="cl8h2gj930003fgdp9soa2yjq" class="article-share-link">Share</a>
       
       
     </footer>
@@ -794,7 +794,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/" data-id="cl8h29x4r000bdgdpelqu0h46" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/01/13/JDBC%E5%8F%8D%E5%BA%8F%E5%88%97%E5%8C%96%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90&POC%E7%BC%96%E5%86%99/" data-id="cl8h2gj9d000bfgdp5k17gox7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -866,7 +866,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/" data-id="cl8h29x4c0001dgdp0tha3lst" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/01/07/HXP%20CTF%202021%E6%96%87%E4%BB%B6%E5%8C%85%E5%90%AB%E5%88%B0RCE%E6%8A%80%E5%B7%A7%E5%AD%A6%E4%B9%A0/" data-id="cl8h2gj910001fgdp2dph8fmv" class="article-share-link">Share</a>
       
       
     </footer>
@@ -960,7 +960,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2021/12/23/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---%E6%B9%96%E6%B9%98%E6%9D%AF2021-Pastebin%E5%A4%8D%E7%8E%B0%E5%AD%A6%E4%B9%A0/" data-id="cl8h29x4h0008dgdp9lch246q" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2021/12/23/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---%E6%B9%96%E6%B9%98%E6%9D%AF2021-Pastebin%E5%A4%8D%E7%8E%B0%E5%AD%A6%E4%B9%A0/" data-id="cl8h2gj950007fgdpajpy4qj7" class="article-share-link">Share</a>
       
       
     </footer>
@@ -1083,7 +1083,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2021/12/17/CVE-2021-42278&CVE-2021-42278%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/" data-id="cl8h29x460000dgdpghr0b6py" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2021/12/17/CVE-2021-42278&CVE-2021-42278%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/" data-id="cl8h2gj8v0000fgdp7j8pfi72" class="article-share-link">Share</a>
       
       
     </footer>
