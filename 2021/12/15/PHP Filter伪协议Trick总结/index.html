@@ -7,12 +7,12 @@
   
   <title>PHP Filter伪协议Trick | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。 PHP Filter协议介绍​    php:&#x2F;&#x2F;filter是php中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如base64编码处理">
+  <meta name="description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="PHP Filter伪协议Trick">
 <meta property="og:url" content="http://example.com/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。 PHP Filter协议介绍​    php:&#x2F;&#x2F;filter是php中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如base64编码处理">
+<meta property="og:description" content="PHP Filter伪协议Trick总结前言：最近在学习的过程中碰到了很多的filter协议的小trick，在此做一个总结以及对filter协议的一些探索。">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113347644.png">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113831143.png">
@@ -23,7 +23,7 @@
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111143123706.png">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111144349667.png">
 <meta property="article:published_time" content="2021-12-15T08:48:20.000Z">
-<meta property="article:modified_time" content="2021-12-15T08:48:20.000Z">
+<meta property="article:modified_time" content="2022-09-30T06:25:08.915Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211111113347644.png">
@@ -98,6 +98,8 @@
     <div class="article-entry" itemprop="articleBody">
       
         <h1 id="PHP-Filter伪协议Trick总结"><a href="#PHP-Filter伪协议Trick总结" class="headerlink" title="PHP Filter伪协议Trick总结"></a><code>PHP Filter</code>伪协议<code>Trick</code>总结</h1><p>前言：最近在学习的过程中碰到了很多的<code>filter</code>协议的小<code>trick</code>，在此做一个总结以及对<code>filter</code>协议的一些探索。</p>
+<span id="more"></span>
+
 <h2 id="PHP-Filter协议介绍"><a href="#PHP-Filter协议介绍" class="headerlink" title="PHP Filter协议介绍"></a><code>PHP Filter</code>协议介绍</h2><p>​    <code>php://filter</code>是<code>php</code>中独有的一种协议，它是一种过滤器，可以作为一个中间流来过滤其他的数据流。通常使用该协议来读取或者写入部分数据，且在读取和写入之前对数据进行一些过滤，例如<code>base64</code>编码处理，<code>rot13</code>处理等。官方解释为：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">php://filter 是一种元封装器，设计用于数据流打开时的筛选过滤应用。这对于一体式（all-in-one）的文件函数非常有用，类似 readfile()、 file() 和 file_get_contents()，在数据流内容读取之前没有机会应用其他过滤器。 </span><br></pre></td></tr></table></figure>
 
@@ -210,7 +212,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/" data-id="cl8h2kvwl0003hqdpawm43l0q" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2021/12/15/PHP%20Filter%E4%BC%AA%E5%8D%8F%E8%AE%AETrick%E6%80%BB%E7%BB%93/" data-id="cl8o3qkpy00032udpbjfw5eo5" class="article-share-link">Share</a>
       
       
     </footer>

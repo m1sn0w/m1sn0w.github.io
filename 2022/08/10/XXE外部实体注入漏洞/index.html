@@ -7,19 +7,19 @@
   
   <title>xxe外部实体注入漏洞 | Hexo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。 DTD可以包含在XML源文件中，也可以包含在其他文件中，通常定义的方式为： 12345678910&lt;?xml version&#x3D;&quot;1.0&quot;?&gt;&lt;!DOCTYPE not">
+  <meta name="description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。">
 <meta property="og:type" content="article">
 <meta property="og:title" content="xxe外部实体注入漏洞">
 <meta property="og:url" content="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/index.html">
 <meta property="og:site_name" content="Hexo">
-<meta property="og:description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。 DTD可以包含在XML源文件中，也可以包含在其他文件中，通常定义的方式为： 12345678910&lt;?xml version&#x3D;&quot;1.0&quot;?&gt;&lt;!DOCTYPE not">
+<meta property="og:description" content="XXE外部实体注入漏洞一、XML格式解析XML是一种非常流行的标记语言，它通常应用于配置文件。XML文档有自己的格式规范，它由DTD(Document Type Definition)进行控制。">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220104209699.png">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220103322811.png">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220105105341.png">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220111834742.png">
 <meta property="article:published_time" content="2022-08-10T07:31:26.000Z">
-<meta property="article:modified_time" content="2022-08-10T07:31:26.000Z">
+<meta property="article:modified_time" content="2022-09-30T06:25:37.523Z">
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211220104209699.png">
@@ -94,6 +94,8 @@
     <div class="article-entry" itemprop="articleBody">
       
         <h1 id="XXE外部实体注入漏洞"><a href="#XXE外部实体注入漏洞" class="headerlink" title="XXE外部实体注入漏洞"></a>XXE外部实体注入漏洞</h1><h2 id="一、XML格式解析"><a href="#一、XML格式解析" class="headerlink" title="一、XML格式解析"></a>一、XML格式解析</h2><p><code>XML</code>是一种非常流行的标记语言，它通常应用于配置文件。<code>XML</code>文档有自己的格式规范，它由<code>DTD(Document Type Definition)</code>进行控制。</p>
+<span id="more"></span>
+
 <p><code>DTD</code>可以包含在<code>XML</code>源文件中，也可以包含在其他文件中，通常定义的方式为：</p>
 <figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;?xml version=&quot;1.0&quot;?&gt;</span><br><span class="line">&lt;!DOCTYPE note [</span><br><span class="line">	&lt;!ELEMENT note (to,from)&gt;</span><br><span class="line">	&lt;!ELEMENT to (#PCDATA)&gt;</span><br><span class="line">	&lt;!ELEMENT from (#PCDATA)&gt;</span><br><span class="line">]&gt;</span><br><span class="line">&lt;note&gt;</span><br><span class="line">	&lt;to&gt;m1sn0w&lt;/to&gt;</span><br><span class="line">	&lt;from&gt;m1sn0w&lt;/from&gt;</span><br><span class="line">&lt;/note&gt;</span><br></pre></td></tr></table></figure>
 
@@ -172,7 +174,7 @@
       
     </div>
     <footer class="article-footer">
-      <a data-url="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" data-id="cl8h2kvwt0006hqdpfs7z7h6p" class="article-share-link">Share</a>
+      <a data-url="http://example.com/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/" data-id="cl8o3qkq000062udpghda07by" class="article-share-link">Share</a>
       
       
     </footer>
