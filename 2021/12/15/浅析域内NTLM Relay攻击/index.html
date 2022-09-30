@@ -1,17 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang=en>
 <head>
-  <meta charset="utf-8">
-  
-
-  
-  <title>浅析域内NTLM Relay攻击 | Hexo</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="浅析域内NTLM Relay攻击域环境下的认证体系​    Windows的身份认证方式有两种，一种是NTLM认证方式，即挑战&#x2F;响应机制；另外一种就是Kerberos认证方式。 ​    早期，Windows域环境下使用NTLM作为认证方式，后来采用了Kerberos协议。在默认环境下，NTLM认证和Kerberos认证同时存在于域环境下。当我们指定主机名的时候，会选用Kerberos来作为认证方">
+    <!-- so meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="True">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="description" content="浅析域内NTLM Relay攻击域环境下的认证体系​    Windows的身份认证方式有两种，一种是NTLM认证方式，即挑战&#x2F;响应机制；另外一种就是Kerberos认证方式。 ​    早期，Windows域环境下使用NTLM作为认证方式，后来采用了Kerberos协议。在默认环境下，NTLM认证和Kerberos认证同时存在于域环境下。当我们指定主机名的时候，会选用Kerberos来作为认证方">
 <meta property="og:type" content="article">
 <meta property="og:title" content="浅析域内NTLM Relay攻击">
 <meta property="og:url" content="http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/index.html">
-<meta property="og:site_name" content="Hexo">
+<meta property="og:site_name" content="m1sn0w">
 <meta property="og:description" content="浅析域内NTLM Relay攻击域环境下的认证体系​    Windows的身份认证方式有两种，一种是NTLM认证方式，即挑战&#x2F;响应机制；另外一种就是Kerberos认证方式。 ​    早期，Windows域环境下使用NTLM作为认证方式，后来采用了Kerberos协议。在默认环境下，NTLM认证和Kerberos认证同时存在于域环境下。当我们指定主机名的时候，会选用Kerberos来作为认证方">
 <meta property="og:locale" content="en_US">
 <meta property="og:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170702159.png">
@@ -59,77 +58,167 @@
 <meta property="article:author" content="John Doe">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:image" content="https://gitee.com/m1sn0w/BlogImg/raw/master/img/image-20211122170702159.png">
-  
-    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
-  
-  
-    <link rel="icon" href="/favicon.png">
-  
-  
-    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
-  
-  
+    
+    
+        
+          
+              <link rel="shortcut icon" href="/images/favicon.ico">
+          
+        
+        
+          
+            <link rel="icon" type="image/png" href="/images/favicon-192x192.png" sizes="192x192">
+          
+        
+        
+          
+            <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+          
+        
+    
+    <!-- title -->
+    <title>浅析域内NTLM Relay攻击</title>
+    <!-- styles -->
+    
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+    
+<link rel="stylesheet" href="/lib/meslo-LG/styles.css">
+
+    
+<link rel="stylesheet" href="/lib/justified-gallery/justifiedGallery.min.css">
+
+    
 <link rel="stylesheet" href="/css/style.css">
+
+    <!-- rss -->
+    
+    
+    <!-- jquery -->
+    
+<script src="/lib/jquery/jquery.min.js"></script>
 
 <meta name="generator" content="Hexo 5.4.2"></head>
 
 <body>
-  <div id="container">
-    <div id="wrap">
-      <header id="header">
-  <div id="banner"></div>
-  <div id="header-outer" class="outer">
-    <div id="header-title" class="inner">
-      <h1 id="logo-wrap">
-        <a href="/" id="logo">Hexo</a>
-      </h1>
+    <div class="banner">
+<div id="blogtitel" class="blogtitel">m1sn0w</div>
+<ul id="wrapper" class="wrapper">
+  <div class="sun">
+    <div class="star"></div>
+  </div>
+  <div class="mercury">
+    <div class="planet">
+      <div class="shadow"></div>
+    </div>
+  </div>
+  <div class="venus">
+    <div class="planet">
+      <div class="shadow"></div>
+    </div>
+  </div>
+  <div class="earth">
+    <div class="planet"><div class="shadow"></div></div>
+  </div>
+  <div class="mars">
+    <div class="planet"><div class="shadow"></div></div>
+  </div>
+  <div class="jupiter">
+    <div class="planet"><div class="shadow"></div></div>
+  </div>
+</ul>
+</div>
+
+    <div class="background">
       
+        <div id="header-post">
+  <a id="menu-icon" href="#"><i class="fa fa-bars fa-lg"></i></a>
+  <a id="menu-icon-tablet" href="#"><i class="fa fa-bars fa-lg"></i></a>
+  <a id="top-icon-tablet" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');" style="display:none;"><i class="fa fa-chevron-up fa-lg"></i></a>
+  <span id="menu">
+    <span id="nav">
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/">Projects</a></li>
+        
+      </ul>
+    </span>
+    <br/>
+    <span id="actions">
+      <ul>
+        
+        <li><a class="icon" href="/2021/12/17/CVE-2021-42278&CVE-2021-42278%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/"><i class="fa fa-chevron-left" aria-hidden="true" onmouseover='$("#i-prev").toggle();' onmouseout='$("#i-prev").toggle();'></i></a></li>
+        
+        
+        <li><a class="icon" href="/2021/12/15/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---Dom%20Clobbering/"><i class="fa fa-chevron-right" aria-hidden="true" onmouseover='$("#i-next").toggle();' onmouseout='$("#i-next").toggle();'></i></a></li>
+        
+        <li><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa fa-chevron-up" aria-hidden="true" onmouseover='$("#i-top").toggle();' onmouseout='$("#i-top").toggle();'></i></a></li>
+        <li><a class="icon" href="#"><i class="fa fa-share-alt" aria-hidden="true" onmouseover='$("#i-share").toggle();' onmouseout='$("#i-share").toggle();' onclick='$("#share").toggle();return false;'></i></a></li>
+      </ul>
+      <span id="i-prev" class="info" style="display:none;">Previous post</span>
+      <span id="i-next" class="info" style="display:none;">Next post</span>
+      <span id="i-top" class="info" style="display:none;">Back to top</span>
+      <span id="i-share" class="info" style="display:none;">Share post</span>
+    </span>
+    <br/>
+    <div id="share" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/"><i class="fa fa-facebook " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&text=浅析域内NTLM Relay攻击"><i class="fa fa-twitter " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-linkedin " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&is_video=false&description=浅析域内NTLM Relay攻击"><i class="fa fa-pinterest " aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=浅析域内NTLM Relay攻击&body=Check out this article: http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/"><i class="fa fa-envelope " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-get-pocket " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-reddit " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-stumbleupon " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-digg " aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&name=浅析域内NTLM Relay攻击&description=&lt;h1 id=&#34;浅析域内NTLM-Relay攻击&#34;&gt;&lt;a href=&#34;#浅析域内NTLM-Relay攻击&#34; class=&#34;headerlink&#34; title=&#34;浅析域内NTLM Relay攻击&#34;&gt;&lt;/a&gt;浅析域内NTLM Relay攻击&lt;/h1&gt;&lt;h2 id=&#34;域环境下的认证体系&#34;&gt;&lt;a href=&#34;#域环境下的认证体系&#34; class=&#34;headerlink&#34; title=&#34;域环境下的认证体系&#34;&gt;&lt;/a&gt;域环境下的认证体系&lt;/h2&gt;&lt;p&gt;​    &lt;code&gt;Windows&lt;/code&gt;的身份认证方式有两种，一种是&lt;code&gt;NTLM&lt;/code&gt;认证方式，即挑战/响应机制；另外一种就是&lt;code&gt;Kerberos&lt;/code&gt;认证方式。&lt;/p&gt;
+&lt;p&gt;​    早期，&lt;code&gt;Windows&lt;/code&gt;域环境下使用&lt;code&gt;NTLM&lt;/code&gt;作为认证方式，后来采用了&lt;code&gt;Kerberos&lt;/code&gt;协议。在默认环境下，&lt;code&gt;NTLM&lt;/code&gt;认证和&lt;code&gt;Kerberos&lt;/code&gt;认证同时存在于域环境下。当我们指定主机名的时候，会选用&lt;code&gt;Kerberos&lt;/code&gt;来作为认证方式：&lt;/p&gt;"><i class="fa fa-tumblr " aria-hidden="true"></i></a></li>
+</ul>
+
     </div>
-    <div id="header-inner" class="inner">
-      <nav id="main-nav">
-        <a id="main-nav-toggle" class="nav-icon"></a>
-        
-          <a class="main-nav-link" href="/">Home</a>
-        
-          <a class="main-nav-link" href="/archives">Archives</a>
-        
-      </nav>
-      <nav id="sub-nav">
-        
-          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
-        
-        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
-      </nav>
-      <div id="search-form-wrap">
-        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
-      </div>
+    <div id="toc">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM-Relay%E6%94%BB%E5%87%BB"><span class="toc-number">1.</span> <span class="toc-text">浅析域内NTLM Relay攻击</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%9F%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%9A%84%E8%AE%A4%E8%AF%81%E4%BD%93%E7%B3%BB"><span class="toc-number">1.1.</span> <span class="toc-text">域环境下的认证体系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NTLM-%E6%9C%AC%E5%9C%B0%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.1.</span> <span class="toc-text">NTLM&#96;本地认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NTLM-%E7%BD%91%E7%BB%9C%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.2.</span> <span class="toc-text">NTLM&#96;网络认证</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%AD%E7%BB%A7%E6%94%BB%E5%87%BB%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">中继攻击原理解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8LLMNR%E5%92%8CNetBIOS%E6%AC%BA%E9%AA%97"><span class="toc-number">1.2.1.</span> <span class="toc-text">利用LLMNR和NetBIOS欺骗</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8WPAD%E5%8A%AB%E6%8C%81"><span class="toc-number">1.2.2.</span> <span class="toc-text">利用WPAD劫持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LLMNR-NBNS%E6%8A%95%E6%AF%92"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">LLMNR&#x2F;NBNS投毒</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DHCPv6"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">DHCPv6</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8desktop-ini"><span class="toc-number">1.2.3.</span> <span class="toc-text">利用desktop.ini</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8office%E6%96%87%E4%BB%B6%E9%92%93%E9%B1%BC"><span class="toc-number">1.2.4.</span> <span class="toc-text">利用office文件钓鱼</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8Web%E6%BC%8F%E6%B4%9E%E6%88%96%E8%80%85%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">1.2.5.</span> <span class="toc-text">利用Web漏洞或者数据库</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E9%9D%A2%E6%89%A9%E5%B1%95"><span class="toc-number">1.3.</span> <span class="toc-text">攻击面扩展</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8MultiRelay-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.1.</span> <span class="toc-text">利用MultiRelay.py进行攻击</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8smbrelayx-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.2.</span> <span class="toc-text">利用smbrelayx.py进行攻击</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8ntlmrelayx-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.3.</span> <span class="toc-text">利用ntlmrelayx.py进行攻击</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%BD%91%E5%AF%B9%E6%8A%97%E4%B8%8B%E7%9A%84%E4%B8%AD%E7%BB%A7%E6%89%93%E6%B3%95"><span class="toc-number">1.4.</span> <span class="toc-text">实网对抗下的中继打法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A2%AB%E5%8A%A8%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.1.</span> <span class="toc-text">被动攻击方式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E5%8A%A8%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.2.</span> <span class="toc-text">主动攻击方式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PortBender%E6%B5%81%E9%87%8F%E9%87%8D%E5%AE%9A%E5%90%91"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">PortBender流量重定向</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%A9%E7%94%A8PetitPotam%E4%B8%AD%E7%BB%A7ADCS%E6%8E%A5%E7%AE%A1%E5%9F%9F"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">利用PetitPotam中继ADCS接管域</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%AD%E7%BB%A7%E6%94%BB%E5%87%BB%E9%98%B2%E5%BE%A1%E6%8E%AA%E6%96%BD"><span class="toc-number">1.5.</span> <span class="toc-text">中继攻击防御措施</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
     </div>
-  </div>
-</header>
-      <div class="outer">
-        <section id="main"><article id="post-浅析域内NTLM Relay攻击" class="article article-type-post" itemscope itemprop="blogPost">
-  <div class="article-meta">
-    <a href="/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/" class="article-date">
-  <time datetime="2021-12-15T08:50:00.000Z" itemprop="datePublished">2021-12-15</time>
-</a>
+  </span>
+</div>
+
+      
+      <div class="content index width mx-auto px2 my4">
+          
+          <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header>
     
-  </div>
-  <div class="article-inner">
-    
-    
-      <header class="article-header">
-        
-  
-    <h1 class="article-title" itemprop="name">
-      浅析域内NTLM Relay攻击
+    <h1 class="posttitle" itemprop="name headline">
+        浅析域内NTLM Relay攻击
     </h1>
+
+
+
+    <div class="meta">
+      <span class="author" itemprop="author" itemscope itemtype="http://schema.org/Person">
+        <span itemprop="name">m1sn0w</span>
+      </span>
+      
+    <div class="postdate">
+        <time datetime="2021-12-15T08:50:00.000Z" itemprop="datePublished">2021-12-15</time>
+    </div>
+
+
+      
+
+    </div>
+  </header>
   
 
-      </header>
-    
-    <div class="article-entry" itemprop="articleBody">
-      
-        <h1 id="浅析域内NTLM-Relay攻击"><a href="#浅析域内NTLM-Relay攻击" class="headerlink" title="浅析域内NTLM Relay攻击"></a>浅析域内NTLM Relay攻击</h1><h2 id="域环境下的认证体系"><a href="#域环境下的认证体系" class="headerlink" title="域环境下的认证体系"></a>域环境下的认证体系</h2><p>​    <code>Windows</code>的身份认证方式有两种，一种是<code>NTLM</code>认证方式，即挑战/响应机制；另外一种就是<code>Kerberos</code>认证方式。</p>
+  <div class="content" itemprop="articleBody">
+    <h1 id="浅析域内NTLM-Relay攻击"><a href="#浅析域内NTLM-Relay攻击" class="headerlink" title="浅析域内NTLM Relay攻击"></a>浅析域内NTLM Relay攻击</h1><h2 id="域环境下的认证体系"><a href="#域环境下的认证体系" class="headerlink" title="域环境下的认证体系"></a>域环境下的认证体系</h2><p>​    <code>Windows</code>的身份认证方式有两种，一种是<code>NTLM</code>认证方式，即挑战/响应机制；另外一种就是<code>Kerberos</code>认证方式。</p>
 <p>​    早期，<code>Windows</code>域环境下使用<code>NTLM</code>作为认证方式，后来采用了<code>Kerberos</code>协议。在默认环境下，<code>NTLM</code>认证和<code>Kerberos</code>认证同时存在于域环境下。当我们指定主机名的时候，会选用<code>Kerberos</code>来作为认证方式：</p>
 <span id="more"></span>
 
@@ -334,144 +423,96 @@
 <p>【利用<code>PetitPotam</code>进行<code>NTLM Relay</code>攻击】<a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_36119192/article/details/120368697">https://blog.csdn.net/qq_36119192/article/details/120368697</a></p>
 <p>【无需<code>Linux</code>进行<code>NTLM Relay</code>】<a target="_blank" rel="noopener" href="https://cloud.tencent.com/developer/article/1896216">https://cloud.tencent.com/developer/article/1896216</a></p>
 
-      
-    </div>
-    <footer class="article-footer">
-      <a data-url="http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/" data-id="cl8o3qkqb000e2udpbqck6c9u" class="article-share-link">Share</a>
-      
-      
-    </footer>
   </div>
-  
-    
-<nav id="article-nav">
-  
-    <a href="/2021/12/17/CVE-2021-42278&CVE-2021-42278%E6%BC%8F%E6%B4%9E%E5%A4%8D%E7%8E%B0%E4%B8%8E%E5%88%86%E6%9E%90/" id="article-nav-newer" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Newer</strong>
-      <div class="article-nav-title">
-        
-          CVE-2021-42278&amp;CVE-2021-42278漏洞复现与分析
-        
-      </div>
-    </a>
-  
-  
-    <a href="/2021/12/15/%E5%89%8D%E7%AB%AF%E5%AE%89%E5%85%A8---Dom%20Clobbering/" id="article-nav-older" class="article-nav-link-wrap">
-      <strong class="article-nav-caption">Older</strong>
-      <div class="article-nav-title">前端安全---Dom Clobbering</div>
-    </a>
-  
-</nav>
-
-  
 </article>
 
-</section>
-        
-          <aside id="sidebar">
-  
-    
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Tags</h3>
-    <div class="widget">
-      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/" rel="tag">域渗透</a></li></ul>
-    </div>
-  </div>
 
 
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Tag Cloud</h3>
-    <div class="widget tagcloud">
-      <a href="/tags/%E5%9F%9F%E6%B8%97%E9%80%8F/" style="font-size: 10px;">域渗透</a>
-    </div>
-  </div>
+      </div>
+      
+       <div id="footer-post-container">
+  <div id="footer-post">
 
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Archives</h3>
-    <div class="widget">
-      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/09/">September 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/08/">August 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/06/">June 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/03/">March 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/02/">February 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2021/12/">December 2021</a></li></ul>
-    </div>
-  </div>
-
-
-  
-    
-  <div class="widget-wrap">
-    <h3 class="widget-title">Recent Posts</h3>
-    <div class="widget">
+    <div id="nav-footer" style="display: none">
       <ul>
-        
-          <li>
-            <a href="/2022/09/25/%E5%9F%9F%E6%B8%97%E9%80%8F---%E9%BB%84%E9%87%91%E7%99%BD%E9%93%B6%E7%A5%A8%E6%8D%AE%E4%BC%AA%E9%80%A0/">域渗透---黄金白银票据伪造</a>
-          </li>
-        
-          <li>
-            <a href="/2022/08/10/XXE%E5%A4%96%E9%83%A8%E5%AE%9E%E4%BD%93%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E/">xxe外部实体注入漏洞</a>
-          </li>
-        
-          <li>
-            <a href="/2022/06/04/WordPress%20SQL%E6%B3%A8%E5%85%A5%E6%BC%8F%E6%B4%9E%EF%BC%88CVE-2022-21661%E5%88%86%E6%9E%90%E4%B8%8E%E5%A4%8D%E7%8E%B0%EF%BC%89/">WordPress SQL注入漏洞（CVE-2022-21661分析与复现）</a>
-          </li>
-        
-          <li>
-            <a href="/2022/03/31/Java%E5%AE%89%E5%85%A8---JNDI%E6%B3%A8%E5%85%A5%E8%A7%A3%E6%9E%90/">Java安全---JNDI注入解析</a>
-          </li>
-        
-          <li>
-            <a href="/2022/03/30/Java%20CC%E9%93%BE1-5%E5%88%86%E6%9E%90%E4%B8%8E%E6%80%BB%E7%BB%93/">Java CC链1-5分析与总结</a>
-          </li>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/">Projects</a></li>
         
       </ul>
     </div>
-  </div>
 
-  
-</aside>
-        
-      </div>
-      <footer id="footer">
-  
-  <div class="outer">
-    <div id="footer-info" class="inner">
-      &copy; 2022 John Doe<br>
-      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    <div id="toc-footer" style="display: none">
+      <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM-Relay%E6%94%BB%E5%87%BB"><span class="toc-number">1.</span> <span class="toc-text">浅析域内NTLM Relay攻击</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%9F%E7%8E%AF%E5%A2%83%E4%B8%8B%E7%9A%84%E8%AE%A4%E8%AF%81%E4%BD%93%E7%B3%BB"><span class="toc-number">1.1.</span> <span class="toc-text">域环境下的认证体系</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#NTLM-%E6%9C%AC%E5%9C%B0%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.1.</span> <span class="toc-text">NTLM&#96;本地认证</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#NTLM-%E7%BD%91%E7%BB%9C%E8%AE%A4%E8%AF%81"><span class="toc-number">1.1.2.</span> <span class="toc-text">NTLM&#96;网络认证</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%AD%E7%BB%A7%E6%94%BB%E5%87%BB%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90"><span class="toc-number">1.2.</span> <span class="toc-text">中继攻击原理解析</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8LLMNR%E5%92%8CNetBIOS%E6%AC%BA%E9%AA%97"><span class="toc-number">1.2.1.</span> <span class="toc-text">利用LLMNR和NetBIOS欺骗</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8WPAD%E5%8A%AB%E6%8C%81"><span class="toc-number">1.2.2.</span> <span class="toc-text">利用WPAD劫持</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#LLMNR-NBNS%E6%8A%95%E6%AF%92"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">LLMNR&#x2F;NBNS投毒</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#DHCPv6"><span class="toc-number">1.2.2.2.</span> <span class="toc-text">DHCPv6</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8desktop-ini"><span class="toc-number">1.2.3.</span> <span class="toc-text">利用desktop.ini</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8office%E6%96%87%E4%BB%B6%E9%92%93%E9%B1%BC"><span class="toc-number">1.2.4.</span> <span class="toc-text">利用office文件钓鱼</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8Web%E6%BC%8F%E6%B4%9E%E6%88%96%E8%80%85%E6%95%B0%E6%8D%AE%E5%BA%93"><span class="toc-number">1.2.5.</span> <span class="toc-text">利用Web漏洞或者数据库</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%94%BB%E5%87%BB%E9%9D%A2%E6%89%A9%E5%B1%95"><span class="toc-number">1.3.</span> <span class="toc-text">攻击面扩展</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8MultiRelay-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.1.</span> <span class="toc-text">利用MultiRelay.py进行攻击</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8smbrelayx-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.2.</span> <span class="toc-text">利用smbrelayx.py进行攻击</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%A9%E7%94%A8ntlmrelayx-py%E8%BF%9B%E8%A1%8C%E6%94%BB%E5%87%BB"><span class="toc-number">1.3.3.</span> <span class="toc-text">利用ntlmrelayx.py进行攻击</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9E%E7%BD%91%E5%AF%B9%E6%8A%97%E4%B8%8B%E7%9A%84%E4%B8%AD%E7%BB%A7%E6%89%93%E6%B3%95"><span class="toc-number">1.4.</span> <span class="toc-text">实网对抗下的中继打法</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A2%AB%E5%8A%A8%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.1.</span> <span class="toc-text">被动攻击方式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E5%8A%A8%E6%94%BB%E5%87%BB%E6%96%B9%E5%BC%8F"><span class="toc-number">1.4.2.</span> <span class="toc-text">主动攻击方式</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#PortBender%E6%B5%81%E9%87%8F%E9%87%8D%E5%AE%9A%E5%90%91"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">PortBender流量重定向</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%88%A9%E7%94%A8PetitPotam%E4%B8%AD%E7%BB%A7ADCS%E6%8E%A5%E7%AE%A1%E5%9F%9F"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">利用PetitPotam中继ADCS接管域</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%AD%E7%BB%A7%E6%94%BB%E5%87%BB%E9%98%B2%E5%BE%A1%E6%8E%AA%E6%96%BD"><span class="toc-number">1.5.</span> <span class="toc-text">中继攻击防御措施</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">1.6.</span> <span class="toc-text">总结</span></a></li></ol></li></ol>
     </div>
+
+    <div id="share-footer" style="display: none">
+      <ul>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.facebook.com/sharer.php?u=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/"><i class="fa fa-facebook fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://twitter.com/share?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&text=浅析域内NTLM Relay攻击"><i class="fa fa-twitter fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.linkedin.com/shareArticle?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-linkedin fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://pinterest.com/pin/create/bookmarklet/?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&is_video=false&description=浅析域内NTLM Relay攻击"><i class="fa fa-pinterest fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" href="mailto:?subject=浅析域内NTLM Relay攻击&body=Check out this article: http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/"><i class="fa fa-envelope fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="https://getpocket.com/save?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-get-pocket fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://reddit.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-reddit fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.stumbleupon.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-stumbleupon fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://digg.com/submit?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&title=浅析域内NTLM Relay攻击"><i class="fa fa-digg fa-lg" aria-hidden="true"></i></a></li>
+  <li><a class="icon" target="_blank" rel="noopener" href="http://www.tumblr.com/share/link?url=http://example.com/2021/12/15/%E6%B5%85%E6%9E%90%E5%9F%9F%E5%86%85NTLM%20Relay%E6%94%BB%E5%87%BB/&name=浅析域内NTLM Relay攻击&description=&lt;h1 id=&#34;浅析域内NTLM-Relay攻击&#34;&gt;&lt;a href=&#34;#浅析域内NTLM-Relay攻击&#34; class=&#34;headerlink&#34; title=&#34;浅析域内NTLM Relay攻击&#34;&gt;&lt;/a&gt;浅析域内NTLM Relay攻击&lt;/h1&gt;&lt;h2 id=&#34;域环境下的认证体系&#34;&gt;&lt;a href=&#34;#域环境下的认证体系&#34; class=&#34;headerlink&#34; title=&#34;域环境下的认证体系&#34;&gt;&lt;/a&gt;域环境下的认证体系&lt;/h2&gt;&lt;p&gt;​    &lt;code&gt;Windows&lt;/code&gt;的身份认证方式有两种，一种是&lt;code&gt;NTLM&lt;/code&gt;认证方式，即挑战/响应机制；另外一种就是&lt;code&gt;Kerberos&lt;/code&gt;认证方式。&lt;/p&gt;
+&lt;p&gt;​    早期，&lt;code&gt;Windows&lt;/code&gt;域环境下使用&lt;code&gt;NTLM&lt;/code&gt;作为认证方式，后来采用了&lt;code&gt;Kerberos&lt;/code&gt;协议。在默认环境下，&lt;code&gt;NTLM&lt;/code&gt;认证和&lt;code&gt;Kerberos&lt;/code&gt;认证同时存在于域环境下。当我们指定主机名的时候，会选用&lt;code&gt;Kerberos&lt;/code&gt;来作为认证方式：&lt;/p&gt;"><i class="fa fa-tumblr fa-lg" aria-hidden="true"></i></a></li>
+</ul>
+
+    </div>
+
+    <div id="actions-footer">
+      <ul>
+        <li id="toc"><a class="icon" href="#" onclick='$("#toc-footer").toggle();return false;'><i class="fa fa-list fa-lg" aria-hidden="true"></i> TOC</a></li>
+        <li id="share"><a class="icon" href="#" onclick='$("#share-footer").toggle();return false;'><i class="fa fa-share-alt fa-lg" aria-hidden="true"></i> Share</a></li>
+        <li id="top" style="display:none"><a class="icon" href="#" onclick="$('html, body').animate({ scrollTop: 0 }, 'fast');"><i class="fa fa-chevron-up fa-lg" aria-hidden="true"></i> Top</a></li>
+        <li id="menu"><a class="icon" href="#" onclick='$("#nav-footer").toggle();return false;'><i class="fa fa-bars fa-lg" aria-hidden="true"></i> Menu</a></li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+      
+      <footer id="footer">
+  <div class="footer-left">
+    Copyright &copy; 2022 John Doe
+  </div>
+  <div class="footer-right">
+    <nav>
+      <ul>
+         
+          <li><a href="/">Home</a></li>
+         
+          <li><a href="/">About</a></li>
+         
+          <li><a href="/archives/">Writing</a></li>
+         
+          <li><a href="/">Projects</a></li>
+        
+      </ul>
+    </nav>
   </div>
 </footer>
+
+      
+<script src="/lib/justified-gallery/jquery.justifiedGallery.min.js"></script>
+
+
+<script src="/js/main.js"></script>
+
+<!-- Google Analytics -->
+
+<!-- Disqus Comments -->
+
+
     </div>
-    <nav id="mobile-nav">
-  
-    <a href="/" class="mobile-nav-link">Home</a>
-  
-    <a href="/archives" class="mobile-nav-link">Archives</a>
-  
-</nav>
-    
-
-<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-
-
-  
-<link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
-
-  
-<script src="/fancybox/jquery.fancybox.pack.js"></script>
-
-
-
-
-<script src="/js/script.js"></script>
-
-
-
-
-  </div>
 </body>
 </html>
